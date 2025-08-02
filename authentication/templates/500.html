@@ -1,0 +1,191 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Server Error - NEPSE Portfolio{% endblock %}
+
+{% block extra_css %}
+<style>
+    .error-container {
+        min-height: 80vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+    }
+    
+    .error-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(25px);
+        border: 1px solid var(--glass-border);
+        border-radius: 1.5rem;
+        padding: 3rem;
+        text-align: center;
+        max-width: 600px;
+        width: 100%;
+        box-shadow: var(--shadow-lg);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .error-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(90deg, transparent, rgba(239, 68, 68, 0.1), transparent);
+        opacity: 0.1;
+        animation: shimmer 3s linear infinite;
+        pointer-events: none;
+    }
+    
+    .error-number {
+        font-size: 8rem;
+        font-weight: 900;
+        background: linear-gradient(135deg, #ef4444, #dc2626, #b91c1c);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        line-height: 1;
+        margin-bottom: 1rem;
+        text-shadow: 0 0 30px rgba(239, 68, 68, 0.3);
+    }
+    
+    .error-title {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 1rem;
+    }
+    
+    .error-subtitle {
+        font-size: 1.2rem;
+        color: var(--text-secondary);
+        margin-bottom: 2rem;
+        line-height: 1.6;
+    }
+    
+    .error-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-bottom: 2rem;
+    }
+    
+    .error-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.875rem 1.75rem;
+        border: none;
+        border-radius: 0.75rem;
+        font-weight: 600;
+        text-decoration: none;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        font-size: 0.95rem;
+        position: relative;
+        overflow: hidden;
+        backdrop-filter: blur(10px);
+    }
+    
+    .error-btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        transition: left 0.5s ease;
+    }
+    
+    .error-btn:hover::before {
+        left: 100%;
+    }
+    
+    .error-btn-primary {
+        background: var(--gradient);
+        color: white;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--glass-border);
+    }
+    
+    .error-btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+    }
+    
+    .error-btn-secondary {
+        background: var(--glass-bg);
+        color: var(--text-primary);
+        border: 1px solid var(--glass-border);
+        box-shadow: var(--shadow);
+    }
+    
+    .error-btn-secondary:hover {
+        background: rgba(239, 68, 68, 0.1);
+        border-color: #ef4444;
+        color: #ef4444;
+        transform: translateY(-2px);
+    }
+    
+    @keyframes shimmer {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+    }
+    
+    @media (max-width: 768px) {
+        .error-card {
+            padding: 2rem;
+            margin: 1rem;
+        }
+        
+        .error-number {
+            font-size: 6rem;
+        }
+        
+        .error-title {
+            font-size: 1.5rem;
+        }
+        
+        .error-subtitle {
+            font-size: 1rem;
+        }
+        
+        .error-actions {
+            flex-direction: column;
+        }
+        
+        .error-btn {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="error-container">
+    <div class="error-card">
+        <div class="error-number">500</div>
+        <h1 class="error-title">Server Error</h1>
+        <p class="error-subtitle">
+            Something went wrong on our end. Our technical team has been notified and is working to fix the issue.
+        </p>
+        
+        <div class="error-actions">
+            <a href="{% url 'home' %}" class="error-btn error-btn-primary">
+                <i class="fas fa-home"></i>
+                Go Home
+            </a>
+            <button onclick="location.reload()" class="error-btn error-btn-secondary">
+                <i class="fas fa-redo"></i>
+                Try Again
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}

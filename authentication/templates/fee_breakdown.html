@@ -1,0 +1,874 @@
+{% extends 'base.html' %}
+{% load math_filters %}
+
+{% block title %}Fee Breakdown - {{ scrip }} - Code Bulls{% endblock %}
+
+{% block content %}
+<div class="fee-breakdown-container">
+    <div class="fee-breakdown-header">
+        <div class="header-content">
+            <div class="header-title">
+                <h1><i class="fas fa-calculator"></i> Fee Breakdown</h1>
+                <p class="header-subtitle">{{ scrip }} - Detailed cost analysis for all transactions</p>
+            </div>
+            <div class="header-actions">
+                <a href="{% url 'sharehub_portfolio' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Portfolio
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="fee-breakdown-content">
+        <!-- Summary Card -->
+        <div class="summary-card">
+            <div class="summary-header">
+                <h2><i class="fas fa-chart-pie"></i> Summary</h2>
+            </div>
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <div class="summary-label">Total Units Owned</div>
+                    <div class="summary-value">{{ total_units }}</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">Remaining Units</div>
+                    <div class="summary-value">{{ remaining_units }}</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">Average Cost (WACC)</div>
+                    <div class="summary-value">Rs. {{ wacc|floatformat:2 }}</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">Total Investment</div>
+                    <div class="summary-value">Rs. {{ total_investment|floatformat:2 }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Buy Transactions -->
+        <div class="transactions-section">
+            <div class="section-header">
+                <div class="section-title">
+                    <h2><i class="fas fa-shopping-cart"></i> Buy Transactions</h2>
+                    <p>Detailed fee breakdown for all purchase transactions</p>
+                </div>
+                <div class="section-controls">
+                    <button class="btn btn-sm btn-outline" onclick="toggleAllCards(true)" title="Expand All">
+                        <i class="fas fa-expand-alt"></i> Expand All
+                    </button>
+                    <button class="btn btn-sm btn-outline" onclick="toggleAllCards(false)" title="Collapse All">
+                        <i class="fas fa-compress-alt"></i> Collapse All
+                    </button>
+                </div>
+            </div>
+            
+            {% if buy_transactions %}
+                {% for item in buy_transactions %}
+                <div class="transaction-card buy-transaction collapsible">
+                    <div class="transaction-header" onclick="toggleCard(this)">
+                        <div class="transaction-info">
+                            <h3>{{ item.transaction.transaction_date|date:"M d, Y" }}</h3>
+                            <span class="transaction-type">Purchase</span>
+                        </div>
+                        <div class="transaction-amount">
+                            <span class="units">{{ item.transaction.units }} units</span>
+                            <span class="price">@ Rs. {{ item.transaction.buying_price|floatformat:2 }}</span>
+                        </div>
+                        <div class="toggle-icon">
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="fee-breakdown-grid collapsible-content">
+                        <div class="fee-section">
+                            <h4>Transaction Details</h4>
+                            <div class="fee-row">
+                                <span class="fee-label">Gross Amount</span>
+                                <span class="fee-value">Rs. {{ item.transaction.units|mul:item.transaction.buying_price|floatformat:2 }}</span>
+                            </div>
+                            <div class="fee-row">
+                                <span class="fee-label">Units</span>
+                                <span class="fee-value">{{ item.transaction.units }}</span>
+                            </div>
+                            <div class="fee-row">
+                                <span class="fee-label">Price per Share</span>
+                                <span class="fee-value">Rs. {{ item.transaction.buying_price|floatformat:2 }}</span>
+                            </div>
+                            <div class="fee-row">
+                                <span class="fee-label">Remaining Units</span>
+                                <span class="fee-value">{{ item.transaction.remaining_units }}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="fee-section">
+                            <h4>Fees & Charges</h4>
+                            <div class="fee-row">
+                                <span class="fee-label">SEBON Fee (0.015%)</span>
+                                <span class="fee-value">Rs. {{ item.costs.sebon_fee|floatformat:2 }}</span>
+                            </div>
+                            <div class="fee-row">
+                                <span class="fee-label">DP Charge</span>
+                                <span class="fee-value">Rs. {{ item.costs.dp_charge|floatformat:2 }}</span>
+                            </div>
+                            <div class="fee-row">
+                                <span class="fee-label">Broker Commission ({{ item.transaction.get_broker_rate }}%)</span>
+                                <span class="fee-value">Rs. {{ item.costs.broker_commission|floatformat:2 }}</span>
+                            </div>
+                            <div class="fee-row total">
+                                <span class="fee-label">Total Fees</span>
+                                <span class="fee-value">Rs. {{ item.costs.sebon_fee|add:item.costs.dp_charge|add:item.costs.broker_commission|floatformat:2 }}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="fee-section">
+                            <h4>Final Amounts</h4>
+                            <div class="fee-row">
+                                <span class="fee-label">Total Cost</span>
+                                <span class="fee-value">Rs. {{ item.costs.total_amount|floatformat:2 }}</span>
+                            </div>
+                            <div class="fee-row">
+                                <span class="fee-label">Cost per Share</span>
+                                <span class="fee-value">Rs. {{ item.costs.cost_per_share|floatformat:2 }}</span>
+                            </div>
+                       
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-shopping-cart"></i>
+                    <h3>No Buy Transactions</h3>
+                    <p>No purchase transactions found for {{ scrip }}</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Sell Transactions -->
+        <div class="transactions-section">
+            <div class="section-header">
+                <div class="section-title">
+                    <h2><i class="fas fa-hand-holding-usd"></i> Sell Transactions</h2>
+                    <p>Complete profit & loss analysis for all sales</p>
+                </div>
+                <div class="section-controls">
+                    <button class="btn btn-sm btn-outline" onclick="toggleAllCards(true)" title="Expand All">
+                        <i class="fas fa-expand-alt"></i> Expand All
+                    </button>
+                    <button class="btn btn-sm btn-outline" onclick="toggleAllCards(false)" title="Collapse All">
+                        <i class="fas fa-compress-alt"></i> Collapse All
+                    </button>
+                </div>
+            </div>
+            
+            {% if sell_transactions %}
+                {% for item in sell_transactions %}
+                <div class="transaction-card sell-transaction collapsible">
+                    <div class="transaction-header" onclick="toggleCard(this)">
+                        <div class="transaction-info">
+                            <h3>{{ item.transaction.transaction_date|date:"M d, Y" }}</h3>
+                            <span class="transaction-type">Sale</span>
+                        </div>
+                        <div class="transaction-amount">
+                            <span class="units">{{ item.transaction.units_sold }} units</span>
+                            <span class="price">@ Rs. {{ item.transaction.selling_price|floatformat:2 }}</span>
+                        </div>
+                        <div class="toggle-icon">
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="fee-breakdown-grid collapsible-content">
+                        <div class="fee-section">
+                            <h4>Sale Details</h4>
+                            <div class="fee-row">
+                                <span class="fee-label">Gross Sale</span>
+                                <span class="fee-value">Rs. {{ item.pnl.gross_sale|floatformat:2 }}</span>
+                            </div>
+                            <div class="fee-row">
+                                <span class="fee-label">Units Sold</span>
+                                <span class="fee-value">{{ item.transaction.units_sold }}</span>
+                            </div>
+                            <div class="fee-row">
+                                <span class="fee-label">Sale Price</span>
+                                <span class="fee-value">Rs. {{ item.transaction.selling_price|floatformat:2 }}</span>
+                            </div>
+                            <div class="fee-row">
+                                <span class="fee-label">Holding Period</span>
+                                <span class="fee-value">{{ item.pnl.holding_period_days }} days</span>
+                            </div>
+                        </div>
+                        
+                        <div class="fee-section">
+                            <h4>Selling Fees</h4>
+                            <div class="fee-row">
+                                <span class="fee-label">SEBON Fee (0.015%)</span>
+                                <span class="fee-value">Rs. {{ item.pnl.sebon_fee|floatformat:2 }}</span>
+                            </div>
+                            <div class="fee-row">
+                                <span class="fee-label">DP Charge</span>
+                                <span class="fee-value">Rs. {{ item.pnl.dp_charge|floatformat:2 }}</span>
+                            </div>
+                            <div class="fee-row">
+                                <span class="fee-label">Broker Commission ({{ item.transaction.get_broker_rate }}%)</span>
+                                <span class="fee-value">Rs. {{ item.pnl.broker_commission|floatformat:2 }}</span>
+                            </div>
+                            <div class="fee-row">
+                                <span class="fee-label">Net Sale Amount</span>
+                                <span class="fee-value">Rs. {{ item.pnl.net_sale|floatformat:2 }}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="fee-section">
+                            <h4>Profit & Loss</h4>
+                            <div class="fee-row">
+                                <span class="fee-label">Cost Basis (WACC: Rs. {{ item.pnl.wacc|floatformat:2 }})</span>
+                                <span class="fee-value">Rs. {{ item.pnl.total_buy_cost|floatformat:2 }}</span>
+                            </div>
+                            <div class="fee-row">
+                                <span class="fee-label">Profit Before Tax</span>
+                                <span class="fee-value {% if item.pnl.profit_before_tax > 0 %}positive{% elif item.pnl.profit_before_tax < 0 %}negative{% else %}neutral{% endif %}">
+                                    {% if item.pnl.profit_before_tax > 0 %}+{% endif %}Rs. {{ item.pnl.profit_before_tax|floatformat:2 }}
+                                </span>
+                            </div>
+                            <div class="fee-row">
+                                <span class="fee-label">Capital Gains Tax ({{ item.pnl.tax_rate_percentage }}%)</span>
+                                <span class="fee-value">Rs. {{ item.pnl.tax_amount|floatformat:2 }}</span>
+                            </div>
+                            <div class="fee-row total">
+                                <span class="fee-label">Net Profit/Loss</span>
+                                <span class="fee-value {% if item.pnl.final_profit > 0 %}positive{% elif item.pnl.final_profit < 0 %}negative{% else %}neutral{% endif %}">
+                                    {% if item.pnl.final_profit > 0 %}+{% endif %}Rs. {{ item.pnl.final_profit|floatformat:2 }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-hand-holding-usd"></i>
+                    <h3>No Sell Transactions</h3>
+                    <p>No sale transactions found for {{ scrip }}</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Estimated Selling Fees (if user has remaining units) -->
+        {% if remaining_units > 0 and current_ltp %}
+        <div class="estimation-section">
+            <div class="section-header">
+                <div class="section-title">
+                    <h2><i class="fas fa-calculator"></i> Current Market Value</h2>
+                    <p>Net receivable amount if you sell all remaining units at current LTP</p>
+                </div>
+            </div>
+            
+            <div class="estimation-card">
+                {% with gross_sale=current_ltp|mul:remaining_units %}
+                {% with sebon_fee=gross_sale|mul:"0.00015" %}
+                {% with dp_charge=25 %}
+                {% with broker_commission=gross_sale|mul:"0.0036" %}
+                {% with total_fees=sebon_fee|add:dp_charge|add:broker_commission %}
+                {% with net_receivable=gross_sale|sub:total_fees %}
+                {% with cost_basis=wacc|mul:remaining_units %}
+                {% with estimated_profit=net_receivable|sub:cost_basis %}
+                <div class="fee-breakdown-grid">
+                    <div class="fee-section">
+                        <h4>Market Position</h4>
+                        <div class="fee-row">
+                            <span class="fee-label">Current LTP</span>
+                            <span class="fee-value">Rs. {{ current_ltp|floatformat:2 }}</span>
+                        </div>
+                        <div class="fee-row">
+                            <span class="fee-label">Remaining Units</span>
+                            <span class="fee-value">{{ remaining_units }}</span>
+                        </div>
+                        <div class="fee-row">
+                            <span class="fee-label">Gross Market Value</span>
+                            <span class="fee-value">Rs. {{ gross_sale|floatformat:2 }}</span>
+                        </div>
+                        <div class="fee-row">
+                            <span class="fee-label">Average Cost (WACC)</span>
+                            <span class="fee-value">Rs. {{ wacc|floatformat:2 }}</span>
+                        </div>
+                        <div class="fee-row">
+                            <span class="fee-label">Total Cost Basis</span>
+                            <span class="fee-value">Rs. {{ cost_basis|floatformat:2 }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="fee-section">
+                        <h4>Selling Fees at Current LTP</h4>
+                        <div class="fee-row">
+                            <span class="fee-label">SEBON Fee (0.015%)</span>
+                            <span class="fee-value">Rs. {{ sebon_fee|floatformat:2 }}</span>
+                        </div>
+                        <div class="fee-row">
+                            <span class="fee-label">DP Charge</span>
+                            <span class="fee-value">Rs. {{ dp_charge|floatformat:2 }}</span>
+                        </div>
+                        <div class="fee-row">
+                            <span class="fee-label">Broker Commission (≈0.36%)</span>
+                            <span class="fee-value">Rs. {{ broker_commission|floatformat:2 }}</span>
+                        </div>
+                        <div class="fee-row">
+                            <span class="fee-label">Total Fees</span>
+                            <span class="fee-value">Rs. {{ total_fees|floatformat:2 }}</span>
+                        </div>
+                        <div class="fee-row total">
+                            <span class="fee-label">Net Receivable Amount</span>
+                            <span class="fee-value positive">Rs. {{ net_receivable|floatformat:2 }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="fee-section">
+                        <h4>Profit/Loss Analysis</h4>
+                        <div class="fee-row">
+                            <span class="fee-label">Estimated Profit/Loss</span>
+                            <span class="fee-value {% if estimated_profit > 0 %}positive{% elif estimated_profit < 0 %}negative{% else %}neutral{% endif %}">
+                                {% if estimated_profit > 0 %}+{% endif %}Rs. {{ estimated_profit|floatformat:2 }}
+                            </span>
+                        </div>
+                        <div class="fee-row">
+                            <span class="fee-label">Return Percentage</span>
+                            <span class="fee-value {% if estimated_profit > 0 %}positive{% elif estimated_profit < 0 %}negative{% else %}neutral{% endif %}">
+                                {% if estimated_profit > 0 %}+{% endif %}{{ estimated_profit|mul:100|div:cost_basis|floatformat:2 }}%
+                            </span>
+                        </div>
+                        <div class="fee-row">
+                            <span class="fee-label">Price Change</span>
+                            <span class="fee-value {% if current_ltp > wacc %}positive{% elif current_ltp < wacc %}negative{% else %}neutral{% endif %}">
+                                {% if current_ltp > wacc %}+{% endif %}Rs. {{ current_ltp|sub:wacc|floatformat:2 }} per share
+                            </span>
+                        </div>
+                        <div class="fee-row">
+                            <span class="fee-label">Price Change %</span>
+                            <span class="fee-value {% if current_ltp > wacc %}positive{% elif current_ltp < wacc %}negative{% else %}neutral{% endif %}">
+                                {% if current_ltp > wacc %}+{% endif %}{{ current_ltp|sub:wacc|mul:100|div:wacc|floatformat:2 }}%
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                {% endwith %}
+                {% endwith %}
+                {% endwith %}
+                {% endwith %}
+                {% endwith %}
+                {% endwith %}
+                {% endwith %}
+                {% endwith %}
+                
+                <div class="estimation-note">
+                    <i class="fas fa-info-circle"></i>
+                    <span>This is an estimate based on current LTP. Actual fees may vary based on broker commission rates and market conditions. Capital gains tax is not included in this calculation.</span>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.fee-breakdown-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.fee-breakdown-header {
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    border-radius: 1.5rem;
+    padding: 2.5rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow-lg);
+    color: white;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2rem;
+}
+
+.header-title h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.header-subtitle {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    margin: 0;
+}
+
+.summary-card {
+    background: var(--bg-card);
+    border-radius: 1rem;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+}
+
+.summary-header {
+    margin-bottom: 1.5rem;
+}
+
+.summary-header h2 {
+    color: var(--text-primary);
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+
+.summary-item {
+    text-align: center;
+    padding: 1rem;
+    background: var(--bg-secondary);
+    border-radius: 0.75rem;
+    border: 1px solid var(--border);
+}
+
+.summary-label {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.summary-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--accent-primary);
+}
+
+.transactions-section {
+    margin-bottom: 3rem;
+}
+
+.section-header {
+    margin-bottom: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.section-title {
+    flex: 1;
+}
+
+.section-title h2 {
+    color: var(--text-primary);
+    font-size: 1.8rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.section-title p {
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.section-controls {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.btn {
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border: none;
+    font-size: 0.875rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.btn-sm {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+}
+
+.btn-outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+}
+
+.btn-outline:hover {
+    background: var(--accent-primary);
+    color: white;
+    border-color: var(--accent-primary);
+}
+
+.transaction-card {
+    background: var(--bg-card);
+    border-radius: 1rem;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent-primary);
+    transition: all 0.3s ease;
+}
+
+.transaction-card.collapsible {
+    padding: 1.5rem;
+}
+
+.transaction-card.collapsible:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.transaction-card.expanded {
+    border-left-width: 6px;
+}
+
+.buy-transaction {
+    border-left-color: var(--success);
+}
+
+.sell-transaction {
+    border-left-color: var(--danger);
+}
+
+.transaction-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+}
+
+.collapsible .transaction-header:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.toggle-icon {
+    display: flex;
+    align-items: center;
+    transition: transform 0.3s ease;
+    color: var(--text-secondary);
+    font-size: 1.2rem;
+}
+
+.transaction-card.expanded .toggle-icon {
+    transform: rotate(180deg);
+}
+
+.collapsible-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease-out, opacity 0.3s ease;
+    opacity: 0;
+}
+
+.transaction-card.expanded .collapsible-content {
+    max-height: 1000px;
+    opacity: 1;
+    margin-bottom: 0;
+}
+
+.transaction-info h3 {
+    color: var(--text-primary);
+    font-size: 1.3rem;
+    margin-bottom: 0.25rem;
+}
+
+.transaction-type {
+    background: var(--accent-primary);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.buy-transaction .transaction-type {
+    background: var(--success);
+}
+
+.sell-transaction .transaction-type {
+    background: var(--danger);
+}
+
+.transaction-amount {
+    text-align: right;
+}
+
+.units {
+    display: block;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.price {
+    display: block;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.fee-breakdown-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+}
+
+.fee-section {
+    background: var(--bg-secondary);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    border: 1px solid var(--border);
+}
+
+.fee-section h4 {
+    color: var(--accent-primary);
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.5rem;
+}
+
+.fee-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.fee-row:last-child {
+    border-bottom: none;
+}
+
+.fee-row.total {
+    font-weight: 700;
+    border-top: 2px solid var(--accent-primary);
+    margin-top: 0.5rem;
+    padding-top: 1rem;
+    background: rgba(34, 197, 94, 0.1);
+    border-radius: 0.25rem;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+}
+
+.fee-label {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.fee-value {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.fee-value.positive {
+    color: var(--success);
+}
+
+.fee-value.negative {
+    color: var(--danger);
+}
+
+.fee-value.neutral {
+    color: var(--text-secondary);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-secondary);
+}
+
+.empty-state i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    color: var(--text-muted);
+}
+
+.empty-state h3 {
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.estimation-section {
+    margin-bottom: 2rem;
+}
+
+.estimation-card {
+    background: var(--bg-card);
+    border-radius: 1rem;
+    padding: 2rem;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--warning);
+}
+
+.estimation-note {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: rgba(245, 158, 11, 0.1);
+    border-radius: 0.5rem;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    color: var(--warning);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+@media (max-width: 768px) {
+    .fee-breakdown-container {
+        padding: 1rem;
+    }
+    
+    .fee-breakdown-header {
+        padding: 2rem;
+    }
+    
+    .header-content {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .header-title h1 {
+        font-size: 2rem;
+    }
+    
+    .fee-breakdown-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .transaction-header {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .transaction-amount {
+        text-align: center;
+    }
+    
+    .section-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .section-controls {
+        justify-content: center;
+    }
+    
+    .toggle-icon {
+        margin-top: 0.5rem;
+    }
+    
+    .collapsible .transaction-header {
+        text-align: left;
+        flex-direction: row;
+        align-items: center;
+    }
+    
+    .collapsible .transaction-amount {
+        text-align: right;
+    }
+}
+</style>
+
+<script>
+function toggleCard(header) {
+    const card = header.closest('.transaction-card');
+    const content = card.querySelector('.collapsible-content');
+    const icon = header.querySelector('.toggle-icon i');
+    
+    // Toggle the expanded class
+    card.classList.toggle('expanded');
+    
+    // Update the icon
+    if (card.classList.contains('expanded')) {
+        icon.classList.remove('fa-chevron-down');
+        icon.classList.add('fa-chevron-up');
+    } else {
+        icon.classList.remove('fa-chevron-up');
+        icon.classList.add('fa-chevron-down');
+    }
+}
+
+// Optional: Add "Expand All" / "Collapse All" functionality
+function toggleAllCards(expand = null) {
+    const cards = document.querySelectorAll('.transaction-card.collapsible');
+    
+    cards.forEach(card => {
+        const header = card.querySelector('.transaction-header');
+        const isExpanded = card.classList.contains('expanded');
+        
+        // If expand is null, toggle; if true, expand; if false, collapse
+        const shouldExpand = expand !== null ? expand : !isExpanded;
+        
+        if (shouldExpand && !isExpanded) {
+            toggleCard(header);
+        } else if (!shouldExpand && isExpanded) {
+            toggleCard(header);
+        }
+    });
+}
+
+// Add keyboard accessibility
+document.addEventListener('DOMContentLoaded', function() {
+    const headers = document.querySelectorAll('.transaction-header');
+    
+    headers.forEach(header => {
+        // Make it keyboard accessible
+        header.setAttribute('tabindex', '0');
+        header.setAttribute('role', 'button');
+        header.setAttribute('aria-expanded', 'false');
+        
+        header.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                toggleCard(this);
+                
+                // Update aria-expanded
+                const card = this.closest('.transaction-card');
+                const isExpanded = card.classList.contains('expanded');
+                this.setAttribute('aria-expanded', isExpanded);
+            }
+        });
+        
+        header.addEventListener('click', function() {
+            // Update aria-expanded after click
+            setTimeout(() => {
+                const card = this.closest('.transaction-card');
+                const isExpanded = card.classList.contains('expanded');
+                this.setAttribute('aria-expanded', isExpanded);
+            }, 100);
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,524 @@
+{% extends 'base.html' %}
+
+{% block title %}Sell Shares - Code Bulls{% endblock %}
+
+{% block content %}
+<div class="sell-form-container">
+    <div class="form-header">
+        <div class="header-content">
+            <h1 class="form-title">📉 {% if is_edit %}Edit{% else %}Sell{% endif %} Shares</h1>
+            <p class="form-subtitle">
+                {% if is_edit %}
+                    Edit your share sale details and recalculate profit/loss
+                {% else %}
+                    Select shares to sell and calculate your profit/loss with tax implications
+                {% endif %}
+            </p>
+        </div>
+        <div class="market-indicator">
+            <span class="market-status">
+                {% if is_edit %}
+                    ✏️ Edit Mode - Update transaction details
+                {% else %}
+                    🟢 Market Open
+                {% endif %}
+            </span>
+        </div>
+    </div>
+
+    {% if is_edit %}
+    <div style="margin-bottom: 1rem;">
+        <a href="{% url 'sharehub_holding_detail' scrip=scrip %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none; padding: 0.5rem 1rem; border-radius: 0.5rem; background: var(--accent-color); color: white;">
+            ← Back to {{ scrip }} Details
+        </a>
+    </div>
+    {% endif %}
+
+    <div class="sell-form-card">
+        <form method="post" id="sellForm" class="modern-form">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="share_ids" class="form-label">Select Share to Sell</label>
+                <select name="share_ids" id="share_ids" class="form-input" required onchange="updateShareInfo()">
+                    <option value="">-- Choose a share from your portfolio --</option>
+                    {% for share in available_shares %}
+                        <option value="{{ share.share_ids }}" 
+                                data-scrip="{{ share.scrip }}"
+                                data-available="{{ share.total_units }}"
+                                data-wacc="{{ share.wacc }}"
+                                data-date="{{ share.earliest_date }}">
+                            {{ share.scrip }} - Available: {{ share.total_units }} units @ Rs.{{ share.wacc|floatformat:2 }} (WACC)
+                        </option>
+                    {% endfor %}
+                </select>
+                {% if not available_shares %}
+                    <small style="color: var(--text-secondary); font-size: 0.8rem;">
+                        No shares available to sell. <a href="{% url 'share_buy' %}" style="color: var(--accent-primary);">Buy some shares first</a>
+                    </small>
+                {% endif %}
+            </div>
+
+            <div id="shareInfo" class="share-info" style="display: none;">
+                <div class="info-title">
+                    <h4>📊 Share Information</h4>
+                </div>
+                <div class="info-grid">
+                    <div>
+                        <span class="info-label">Scrip:</span>
+                        <span id="selectedScrip" class="info-value">-</span>
+                    </div>
+                    <div>
+                        <span class="info-label">Available Units:</span>
+                        <span id="availableUnits" class="info-value">-</span>
+                    </div>
+                    <div>
+                        <span class="info-label">WACC Price:</span>
+                        <span id="waccPrice" class="info-value">Rs. -</span>
+                    </div>
+                    <div>
+                        <span class="info-label">Purchase Date:</span>
+                        <span id="purchaseDate" class="info-value">-</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="units_sold" class="form-label">Units to Sell</label>
+                    <input 
+                        type="number" 
+                        name="units_sold" 
+                        id="units_sold" 
+                        class="form-input" 
+                        required 
+                        min="1"
+                        placeholder="10"
+                        oninput="calculateSalePreview()"
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label for="selling_price" class="form-label">Selling Price per Unit (Rs.)</label>
+                    <input 
+                        type="number" 
+                        name="selling_price" 
+                        id="selling_price" 
+                        class="form-input" 
+                        step="0.01" 
+                        required 
+                        min="0.01"
+                        placeholder="1250.00"
+                        oninput="calculateSalePreview()"
+                    >
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="transaction_date" class="form-label">Transaction Date</label>
+                <input 
+                    type="date" 
+                    name="transaction_date" 
+                    id="transaction_date" 
+                    class="form-input" 
+                    required
+                >
+            </div>
+
+            <!-- Sale Preview -->
+            <div id="salePreview" class="profit-preview" style="display: none;">
+                <div class="preview-title">
+                    <h4>💰 Sale Preview</h4>
+                </div>
+                <div class="preview-grid">
+                    <div>
+                        <span class="preview-label">Gross Sale:</span>
+                        <span id="grossAmount" class="preview-value">Rs. 0.00</span>
+                    </div>
+                    <div>
+                        <span class="preview-label">Est. Net Amount:</span>
+                        <span id="netAmount" class="preview-value">Rs. 0.00</span>
+                    </div>
+                    <div>
+                        <span class="preview-label">Est. Profit/Loss:</span>
+                        <span id="estimatedProfit" class="preview-value">Rs. 0.00</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <button type="submit" class="btn-sell" style="width: 100%; padding: 0.75rem; font-size: 1rem;">
+                    📈 Calculate & Record Sale
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Info Card -->
+    <div id="saleDetails" style="margin-top: 2rem; background: var(--bg-card); padding: 1.5rem; border-radius: 1rem; border: 1px solid var(--border); display: none;">
+        <h3 style="margin-bottom: 1rem; color: var(--text-primary);">📋 What We Calculate</h3>
+        <div style="display: grid; gap: 0.5rem; font-size: 0.9rem;">
+            <div style="display: flex; justify-content: space-between;">
+                <span style="color: var(--text-secondary);">SEBON Fee:</span>
+                <span id="sellSebonFee" style="color: var(--text-primary);">Rs. 0.00</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+                <span style="color: var(--text-secondary);">DP Charge:</span>
+                <span style="color: var(--text-primary);">Rs. 25.00</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+                <span style="color: var(--text-secondary);">Broker Commission:</span>
+                <span id="sellBrokerCommission" style="color: var(--text-primary);">Rs. 0.00</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+                <span style="color: var(--text-secondary);">Capital Gains Tax:</span>
+                <span id="sellTax" style="color: var(--text-primary);">Rs. 0.00</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.sell-form-container {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 2rem;
+    background: var(--bg-primary);
+    min-height: 100vh;
+}
+
+.form-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding: 2rem;
+    background: linear-gradient(135deg, #f44336, #d32f2f);
+    border-radius: 1.5rem;
+    color: white;
+    box-shadow: 0 8px 32px rgba(244, 67, 54, 0.3);
+}
+
+.form-title {
+    font-size: 2.2rem;
+    font-weight: 700;
+    margin: 0;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.form-subtitle {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    margin: 0.5rem 0 0 0;
+}
+
+.market-indicator {
+    padding: 0.75rem 1.5rem;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2rem;
+    backdrop-filter: blur(10px);
+    font-weight: 500;
+}
+
+.market-status {
+    font-size: 0.9rem;
+}
+
+.sell-form-card {
+    background: var(--bg-card);
+    border-radius: 1.5rem;
+    padding: 2.5rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--border);
+}
+
+.modern-form .form-group {
+    margin-bottom: 1.5rem;
+}
+
+.modern-form .form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+}
+
+.modern-form .form-input {
+    width: 100%;
+    padding: 1rem;
+    border: 2px solid var(--border);
+    border-radius: 0.75rem;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+.modern-form .form-input:focus {
+    border-color: var(--danger);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(244, 67, 54, 0.1);
+    transform: translateY(-1px);
+}
+
+.modern-form .form-input:hover {
+    border-color: var(--danger);
+}
+
+.modern-form select.form-input {
+    cursor: pointer;
+}
+
+.share-info {
+    background: linear-gradient(135deg, var(--bg-secondary), var(--bg-card));
+    padding: 1.5rem;
+    border-radius: 1rem;
+    margin: 1.5rem 0;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.info-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    font-size: 0.95rem;
+}
+
+.info-label {
+    color: var(--text-secondary);
+}
+
+.info-value {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.profit-preview {
+    background: linear-gradient(135deg, var(--bg-secondary), var(--bg-card));
+    padding: 1.5rem;
+    border-radius: 1rem;
+    margin: 1.5rem 0;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.preview-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.preview-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    font-size: 0.95rem;
+}
+
+.preview-label {
+    color: var(--text-secondary);
+}
+
+.preview-value {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.preview-positive {
+    color: var(--success);
+    font-weight: 700;
+}
+
+.preview-negative {
+    color: var(--danger);
+    font-weight: 700;
+}
+
+.btn-sell {
+    background: linear-gradient(135deg, #f44336, #d32f2f);
+    border: none;
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 0.75rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(244, 67, 54, 0.3);
+}
+
+.btn-sell:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(244, 67, 54, 0.4);
+}
+
+.btn-sell:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.loading {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top: 2px solid white;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+    .sell-form-container {
+        padding: 1rem;
+    }
+    
+    .form-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
+    
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .sell-form-card {
+        padding: 1.5rem;
+    }
+}
+</style>
+
+<script>
+    let currentWaccPrice = 0;
+    let currentUnits = 0;
+    let currentPurchaseDate = null;
+
+    function updateShareInfo() {
+        const select = document.getElementById('share_ids');
+        const option = select.options[select.selectedIndex];
+        const infoDiv = document.getElementById('shareInfo');
+        
+        if (option.value) {
+            document.getElementById('selectedScrip').textContent = option.dataset.scrip;
+            document.getElementById('availableUnits').textContent = option.dataset.available;
+            document.getElementById('waccPrice').textContent = 'Rs. ' + parseFloat(option.dataset.wacc).toFixed(2);
+            document.getElementById('purchaseDate').textContent = option.dataset.date;
+            document.getElementById('units_sold').max = option.dataset.available;
+            
+            currentWaccPrice = parseFloat(option.dataset.wacc);
+            currentUnits = parseInt(option.dataset.available);
+            currentPurchaseDate = option.dataset.date;
+            
+            infoDiv.style.display = 'block';
+            calculateSalePreview();
+        } else {
+            infoDiv.style.display = 'none';
+            document.getElementById('salePreview').style.display = 'none';
+            document.getElementById('saleDetails').style.display = 'none';
+        }
+    }
+
+    function getBrokerRate(totalAmount) {
+        if (totalAmount <= 50000) {
+            return 0.36;
+        } else if (totalAmount <= 500000) {
+            return 0.33;
+        } else if (totalAmount <= 2000000) {
+            return 0.31;
+        } else if (totalAmount <= 10000000) {
+            return 0.27;
+        } else {
+            return 0.24;
+        }
+    }
+
+    function calculateSalePreview() {
+        const units = parseFloat(document.getElementById('units_sold').value) || 0;
+        const price = parseFloat(document.getElementById('selling_price').value) || 0;
+        const previewDiv = document.getElementById('salePreview');
+        const detailsDiv = document.getElementById('saleDetails');
+        
+        if (units > 0 && price > 0 && currentWaccPrice > 0 && currentPurchaseDate) {
+            const grossAmount = units * price;
+            
+            // Calculate fees using the same logic as the model
+            const sebonFee = grossAmount * 0.00015;
+            const dpCharge = 25;
+            const brokerRate = getBrokerRate(grossAmount);
+            const brokerCommission = grossAmount * (brokerRate / 100);
+            const totalFees = sebonFee + dpCharge + brokerCommission;
+            const netAmount = grossAmount - totalFees;
+            
+            // Calculate profit/loss using WACC
+            const costBasis = units * currentWaccPrice;
+            const profitBeforeTax = netAmount - costBasis;
+            
+            // Calculate tax based on holding period
+            const purchaseDate = new Date(currentPurchaseDate);
+            const today = new Date();
+            const daysDiff = Math.floor((today - purchaseDate) / (1000 * 60 * 60 * 24));
+            const taxRate = daysDiff >= 365 ? 0.05 : 0.075; // 5% for >=1 year, 7.5% for <1 year
+            const tax = profitBeforeTax > 0 ? profitBeforeTax * taxRate : 0;
+            const finalProfit = profitBeforeTax - tax;
+            
+            // Update preview
+            document.getElementById('grossAmount').textContent = 'Rs. ' + grossAmount.toFixed(2);
+            document.getElementById('netAmount').textContent = 'Rs. ' + netAmount.toFixed(2);
+            
+            const profitElement = document.getElementById('estimatedProfit');
+            profitElement.textContent = 'Rs. ' + finalProfit.toFixed(2);
+            profitElement.style.color = finalProfit >= 0 ? 'var(--success)' : 'var(--danger)';
+            
+            // Update details
+            document.getElementById('sellSebonFee').textContent = 'Rs. ' + sebonFee.toFixed(2);
+            document.getElementById('sellBrokerCommission').textContent = 'Rs. ' + brokerCommission.toFixed(2);
+            document.getElementById('sellTax').textContent = 'Rs. ' + tax.toFixed(2) + ' (' + (taxRate * 100).toFixed(1) + '%)';
+            
+            previewDiv.style.display = 'block';
+            detailsDiv.style.display = 'block';
+        } else {
+            previewDiv.style.display = 'none';
+            detailsDiv.style.display = 'none';
+        }
+    }
+
+    // Form submission
+    document.getElementById('sellForm').addEventListener('submit', function(e) {
+        const button = this.querySelector('button[type="submit"]');
+        button.innerHTML = '<div class="loading"></div> Processing...';
+        button.disabled = true;
+    });
+
+    // Set today's date as default
+    document.addEventListener('DOMContentLoaded', function() {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('transaction_date').value = today;
+    });
+</script>
+{% endblock %}

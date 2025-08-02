@@ -1,0 +1,415 @@
+{% extends 'base.html' %}
+
+{% block title %}Purchase Successful - Code Bulls{% endblock %}
+
+{% block content %}
+<div class="result-container">
+    <!-- Success Header -->
+    <div class="success-header">
+        <div class="success-icon">
+            <div class="checkmark-circle">
+                <div class="checkmark"></div>
+            </div>
+        </div>
+        <h1 class="success-title">Purchase Successful!</h1>
+        <p class="success-subtitle">Your share purchase has been recorded successfully</p>
+    </div>
+
+    <!-- Purchase Summary Card -->
+    <div class="summary-card">
+        <div class="card-header">
+            <h2 class="card-title">📊 Purchase Summary</h2>
+            <span class="transaction-badge buy">BUY</span>
+        </div>
+        
+        <div class="summary-grid">
+            <div class="summary-item">
+                <div class="item-label">Stock Symbol</div>
+                <div class="item-value highlight">{{ scrip }}</div>
+            </div>
+            <div class="summary-item">
+                <div class="item-label">Units Purchased</div>
+                <div class="item-value">{{ units }}</div>
+            </div>
+            <div class="summary-item">
+                <div class="item-label">Price per Unit</div>
+                <div class="item-value">Rs. {{ buying_price|floatformat:2 }}</div>
+            </div>
+            <div class="summary-item">
+                <div class="item-label">Share Value</div>
+                <div class="item-value">Rs. {{ total_share_value|floatformat:2 }}</div>
+            </div>
+        </div>
+
+        <div class="total-payment">
+            <div class="payment-label">Total Amount Paid</div>
+            <div class="payment-amount">Rs. {{ total_payment|floatformat:2 }}</div>
+            <div class="payment-note">Including all fees and charges</div>
+        </div>
+    </div>
+
+    <!-- Cost Breakdown -->
+    <div class="breakdown-card">
+        <div class="card-header">
+            <h3 class="card-title">💰 Cost Breakdown</h3>
+        </div>
+        
+        <div class="breakdown-table">
+            <div class="breakdown-row">
+                <div class="breakdown-label">
+                    <span class="breakdown-icon">📈</span>
+                    Share Value
+                </div>
+                <div class="breakdown-value">Rs. {{ total_share_value|floatformat:2 }}</div>
+            </div>
+            
+            <div class="breakdown-row">
+                <div class="breakdown-label">
+                    <span class="breakdown-icon">🏛️</span>
+                    SEBON Fee (0.015%)
+                </div>
+                <div class="breakdown-value fee">Rs. {{ sebon_fee|floatformat:2 }}</div>
+            </div>
+            
+            <div class="breakdown-row">
+                <div class="breakdown-label">
+                    <span class="breakdown-icon">🏢</span>
+                    DP Charge
+                </div>
+                <div class="breakdown-value fee">Rs. {{ dp_charge|floatformat:2 }}</div>
+            </div>
+            
+            <div class="breakdown-row">
+                <div class="breakdown-label">
+                    <span class="breakdown-icon">🤝</span>
+                    Broker Commission
+                </div>
+                <div class="breakdown-value fee">Rs. {{ broker_commission|floatformat:2 }}</div>
+            </div>
+            
+            <div class="breakdown-row total">
+                <div class="breakdown-label">
+                    <span class="breakdown-icon">💎</span>
+                    Cost per Share (WACC)
+                </div>
+                <div class="breakdown-value">Rs. {{ cost_per_share|floatformat:2 }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+        <a href="{% url 'share_buy' %}" class="action-btn primary">
+            <span class="btn-icon">📈</span>
+            Buy More Shares
+        </a>
+        <a href="{% url 'sharehub_portfolio' %}" class="action-btn secondary">
+            <span class="btn-icon">📊</span>
+            View Portfolio
+        </a>
+        <a href="{% url 'dashboard' %}" class="action-btn outline">
+            <span class="btn-icon">🏠</span>
+            Dashboard
+        </a>
+    </div>
+</div>
+
+<style>
+.result-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.success-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.success-icon {
+    margin-bottom: 1.5rem;
+}
+
+.checkmark-circle {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--success), #059669);
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: scaleIn 0.5s ease-out;
+}
+
+.checkmark {
+    width: 24px;
+    height: 40px;
+    border: solid white;
+    border-width: 0 4px 4px 0;
+    transform: rotate(45deg);
+    animation: checkmarkDraw 0.3s ease-out 0.2s both;
+}
+
+@keyframes scaleIn {
+    from {
+        transform: scale(0);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes checkmarkDraw {
+    from {
+        height: 0;
+    }
+    to {
+        height: 40px;
+    }
+}
+
+.success-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.success-subtitle {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+}
+
+.summary-card, .breakdown-card {
+    background: var(--bg-card);
+    border-radius: 1rem;
+    padding: 2rem;
+    border: 1px solid var(--border);
+    margin-bottom: 2rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.card-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.transaction-badge {
+    padding: 0.5rem 1rem;
+    border-radius: 2rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.transaction-badge.buy {
+    background: linear-gradient(135deg, var(--success), #059669);
+    color: white;
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.summary-item {
+    text-align: center;
+    padding: 1rem;
+    background: var(--bg-secondary);
+    border-radius: 0.75rem;
+    border: 1px solid var(--border);
+}
+
+.item-label {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+}
+
+.item-value {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.item-value.highlight {
+    color: var(--accent-primary);
+    font-size: 1.4rem;
+}
+
+.total-payment {
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    padding: 1.5rem;
+    border-radius: 1rem;
+    text-align: center;
+    color: white;
+}
+
+.payment-label {
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+    opacity: 0.9;
+}
+
+.payment-amount {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.payment-note {
+    font-size: 0.85rem;
+    opacity: 0.8;
+}
+
+.breakdown-table {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.breakdown-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: var(--bg-secondary);
+    border-radius: 0.5rem;
+    border: 1px solid var(--border);
+}
+
+.breakdown-row.total {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(22, 163, 74, 0.05));
+    border-color: var(--accent-primary);
+}
+
+.breakdown-label {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.breakdown-icon {
+    font-size: 1.2rem;
+}
+
+.breakdown-value {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.breakdown-value.fee {
+    color: var(--text-secondary);
+}
+
+.breakdown-row.total .breakdown-value {
+    color: var(--accent-primary);
+    font-size: 1.1rem;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 3rem;
+}
+
+.action-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 1.5rem;
+    border-radius: 0.75rem;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.action-btn.primary {
+    background: var(--accent-primary);
+    color: white;
+}
+
+.action-btn.primary:hover {
+    background: var(--accent-secondary);
+    transform: translateY(-2px);
+    color: white;
+}
+
+.action-btn.secondary {
+    background: var(--info);
+    color: white;
+}
+
+.action-btn.secondary:hover {
+    background: #2563eb;
+    transform: translateY(-2px);
+    color: white;
+}
+
+.action-btn.outline {
+    background: transparent;
+    color: var(--text-primary);
+    border-color: var(--border);
+}
+
+.action-btn.outline:hover {
+    background: var(--bg-card);
+    border-color: var(--accent-primary);
+    color: var(--text-primary);
+}
+
+.btn-icon {
+    font-size: 1.1rem;
+}
+
+@media (max-width: 768px) {
+    .result-container {
+        padding: 1rem;
+    }
+    
+    .success-title {
+        font-size: 2rem;
+    }
+    
+    .summary-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .action-btn {
+        width: 100%;
+        max-width: 300px;
+        justify-content: center;
+    }
+    
+    .card-header {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+}
+</style>
+{% endblock %}

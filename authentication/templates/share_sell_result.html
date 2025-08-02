@@ -1,0 +1,834 @@
+{% extends 'base.html' %}
+
+{% block title %}Sale Successful - Code Bulls{% endblock %}
+
+{% block content %}
+<div class="result-container">
+    <!-- Success Header -->
+    <div class="success-header">
+        <div class="success-icon">
+            <div class="checkmark-circle sell">
+                <div class="checkmark"></div>
+            </div>
+        </div>
+        <h1 class="success-title">Sale Successful!</h1>
+        <p class="success-subtitle">Your share sale has been processed successfully</p>
+    </div>
+
+    <!-- Net Receivable Amount Highlight -->
+    <div class="receivable-highlight">
+        <div class="receivable-content">
+            <div class="receivable-icon">💰</div>
+            <div class="receivable-details">
+                <div class="receivable-label">Total Amount You'll Receive</div>
+                <div class="receivable-amount">Rs. {{ net_receivable|floatformat:2 }}</div>
+                <div class="receivable-note">Final amount after all fees and taxes</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sale Summary Card -->
+    <div class="summary-card">
+        <div class="card-header">
+            <h2 class="card-title">📉 Sale Summary</h2>
+            <span class="transaction-badge sell">SELL</span>
+        </div>
+        
+        <div class="summary-grid">
+            <div class="summary-item">
+                <div class="item-label">Stock Symbol</div>
+                <div class="item-value highlight">{{ scrip }}</div>
+            </div>
+            <div class="summary-item">
+                <div class="item-label">Units Sold</div>
+                <div class="item-value">{{ units_sold }}</div>
+            </div>
+            <div class="summary-item">
+                <div class="item-label">Selling Price</div>
+                <div class="item-value">Rs. {{ selling_price|floatformat:2 }}</div>
+            </div>
+            <div class="summary-item">
+                <div class="item-label">Gross Sale</div>
+                <div class="item-value">Rs. {{ gross_sale|floatformat:2 }}</div>
+            </div>
+        </div>
+
+        <div class="net-amount">
+            <div class="amount-label">Net Sale Amount (Before Tax)</div>
+            <div class="amount-value">Rs. {{ net_sale|floatformat:2 }}</div>
+            <div class="amount-note">After transaction fees and charges</div>
+        </div>
+    </div>
+
+    <!-- Financial Breakdown -->
+    <div class="breakdown-card">
+        <div class="card-header">
+            <h3 class="card-title">💰 Financial Breakdown</h3>
+        </div>
+        
+        <div class="breakdown-table">
+            <div class="breakdown-row positive">
+                <div class="breakdown-label">
+                    <span class="breakdown-icon">💰</span>
+                    Gross Sale Amount
+                </div>
+                <div class="breakdown-value">+Rs. {{ gross_sale|floatformat:2 }}</div>
+            </div>
+            
+            <div class="breakdown-row negative">
+                <div class="breakdown-label">
+                    <span class="breakdown-icon">🏛️</span>
+                    SEBON Fee (0.015%)
+                </div>
+                <div class="breakdown-value">-Rs. {{ sebon_fee|floatformat:2 }}</div>
+            </div>
+            
+            <div class="breakdown-row negative">
+                <div class="breakdown-label">
+                    <span class="breakdown-icon">🏢</span>
+                    DP Charge
+                </div>
+                <div class="breakdown-value">-Rs. {{ dp_charge|floatformat:2 }}</div>
+            </div>
+            
+            <div class="breakdown-row negative">
+                <div class="breakdown-label">
+                    <span class="breakdown-icon">🤝</span>
+                    Broker Commission
+                </div>
+                <div class="breakdown-value">-Rs. {{ broker_commission|floatformat:2 }}</div>
+            </div>
+            
+            <div class="breakdown-row negative">
+                <div class="breakdown-label">
+                    <span class="breakdown-icon">💰</span>
+                    Capital Gains Tax ({{ tax_rate|floatformat:1 }}%)
+                </div>
+                <div class="breakdown-value">-Rs. {{ tax_amount|floatformat:2 }}</div>
+            </div>
+            
+            <div class="breakdown-row total">
+                <div class="breakdown-label">
+                    <span class="breakdown-icon">✅</span>
+                    Final Net Receivable Amount
+                    <small style="font-size: 0.8rem; color: var(--text-secondary); margin-left: 0.5rem;">(After all fees & taxes)</small>
+                </div>
+                <div class="breakdown-value">Rs. {{ net_receivable|floatformat:2 }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profit/Loss Analysis -->
+    <div class="profit-card">
+        <div class="card-header">
+            <h3 class="card-title">📊 Profit/Loss Analysis</h3>
+        </div>
+        
+        <div class="profit-grid">
+            <div class="profit-item">
+                <div class="profit-label">
+                    Total Purchase Cost
+                    <div class="profit-note">WACC: Rs. {{ wacc|floatformat:2 }} × {{ units_sold }} units</div>
+                </div>
+                <div class="profit-value">Rs. {{ total_buy_cost|floatformat:2 }}</div>
+            </div>
+            
+            <div class="profit-item">
+                <div class="profit-label">Profit Before Tax</div>
+                <div class="profit-value {% if profit_before_tax >= 0 %}positive{% else %}negative{% endif %}">
+                    {% if profit_before_tax >= 0 %}+{% endif %}Rs. {{ profit_before_tax|floatformat:2 }}
+                </div>
+            </div>
+            
+            <div class="profit-item">
+                <div class="profit-label">Capital Gains Tax ({{ tax_rate|floatformat:1 }}%)</div>
+                <div class="profit-value negative">-Rs. {{ tax_amount|floatformat:2 }}</div>
+            </div>
+            
+            <div class="profit-item final">
+                <div class="profit-label">Final Profit/Loss</div>
+                <div class="profit-value {% if final_profit >= 0 %}positive{% else %}negative{% endif %}">
+                    {% if final_profit >= 0 %}+{% endif %}Rs. {{ final_profit|floatformat:2 }}
+                    {% if final_profit > 0 %}
+                        📈
+                    {% elif final_profit < 0 %}
+                        📉
+                    {% else %}
+                        ➖
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Congratulations/Loss Message -->
+        {% if final_profit > 0 %}
+            <div class="congratulations-banner profit">
+                <div class="banner-background">
+                    <div class="confetti-animation"></div>
+                </div>
+                <div class="banner-content">
+                    <div class="banner-icon">🎉</div>
+                    <div class="banner-text">
+                        <h3 class="banner-title">Congratulations! Great Investment!</h3>
+                        <p class="banner-message">You earned a profit of <strong>Rs. {{ final_profit|floatformat:2 }}</strong> on this transaction. Well done on your investment decision!</p>
+                        <div class="banner-stats">
+                            {% if profit_before_tax > 0 %}
+                                <div class="stat-item">
+                                    <span class="stat-label">Profit Margin:</span>
+                                    <span class="stat-value">{{ profit_percentage|floatformat:1 }}%</span>
+                                </div>
+                            {% endif %}
+                            <div class="stat-item">
+                                <span class="stat-label">Holding Period:</span>
+                                <span class="stat-value">{{ holding_period_days }} days</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% elif final_profit < 0 %}
+            <div class="congratulations-banner loss">
+                <div class="banner-background"></div>
+                <div class="banner-content">
+                    <div class="banner-icon">📊</div>
+                    <div class="banner-text">
+                        <h3 class="banner-title">Learning Experience</h3>
+                        <p class="banner-message">This transaction resulted in a loss of <strong>Rs. {{ final_profit|floatformat:2|cut:"-" }}</strong>. Every investment is a learning opportunity for future growth.</p>
+                        <div class="banner-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">Holding Period:</span>
+                                <span class="stat-value">{{ holding_period_days }} days</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <div class="congratulations-banner breakeven">
+                <div class="banner-background"></div>
+                <div class="banner-content">
+                    <div class="banner-icon">⚖️</div>
+                    <div class="banner-text">
+                        <h3 class="banner-title">Perfect Balance</h3>
+                        <p class="banner-message">You broke even on this transaction. Sometimes not losing money is a win in itself!</p>
+                        <div class="banner-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">Holding Period:</span>
+                                <span class="stat-value">{{ holding_period_days }} days</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Total Receivable Amount Highlight -->
+    <div class="receivable-highlight">
+        <div class="receivable-content">
+            <div class="receivable-icon">💰</div>
+            <div class="receivable-details">
+                <h3 class="receivable-title">Total Amount You Will Receive</h3>
+                <div class="receivable-amount">Rs. {{ net_receivable|floatformat:2 }}</div>
+                <p class="receivable-note">Final amount after deducting all fees, charges, and capital gains tax. This will be credited to your account.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+        <a href="{% url 'sharehub_portfolio' %}" class="action-btn primary">
+            <span class="btn-icon">📊</span>
+            View Portfolio
+        </a>
+        <a href="{% url 'share_buy' %}" class="action-btn secondary">
+            <span class="btn-icon">📈</span>
+            Buy Shares
+        </a>
+        <a href="{% url 'dashboard' %}" class="action-btn outline">
+            <span class="btn-icon">🏠</span>
+            Dashboard
+        </a>
+    </div>
+</div>
+
+<style>
+.result-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.success-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.success-icon {
+    margin-bottom: 1.5rem;
+}
+
+.checkmark-circle {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--success), #059669);
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: scaleIn 0.5s ease-out;
+}
+
+.checkmark-circle.sell {
+    background: linear-gradient(135deg, var(--danger), #dc2626);
+}
+
+.checkmark {
+    width: 24px;
+    height: 40px;
+    border: solid white;
+    border-width: 0 4px 4px 0;
+    transform: rotate(45deg);
+    animation: checkmarkDraw 0.3s ease-out 0.2s both;
+}
+
+@keyframes scaleIn {
+    from {
+        transform: scale(0);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes checkmarkDraw {
+    from {
+        height: 0;
+    }
+    to {
+        height: 40px;
+    }
+}
+
+.success-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.success-subtitle {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+}
+
+.summary-card, .breakdown-card, .profit-card {
+    background: var(--bg-card);
+    border-radius: 1rem;
+    padding: 2rem;
+    border: 1px solid var(--border);
+    margin-bottom: 2rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.card-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.transaction-badge {
+    padding: 0.5rem 1rem;
+    border-radius: 2rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.transaction-badge.sell {
+    background: linear-gradient(135deg, var(--danger), #dc2626);
+    color: white;
+}
+
+.summary-grid, .profit-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.summary-item, .profit-item {
+    text-align: center;
+    padding: 1rem;
+    background: var(--bg-secondary);
+    border-radius: 0.75rem;
+    border: 1px solid var(--border);
+}
+
+.profit-item.final {
+    grid-column: span 2;
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(239, 68, 68, 0.1));
+}
+
+.item-label, .profit-label {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+}
+
+.profit-note {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    opacity: 0.8;
+    margin-top: 0.25rem;
+    font-style: italic;
+}
+
+.item-value, .profit-value {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.item-value.highlight {
+    color: var(--accent-primary);
+    font-size: 1.4rem;
+}
+
+.profit-value.positive {
+    color: var(--success);
+}
+
+.profit-value.negative {
+    color: var(--danger);
+}
+
+.net-amount {
+    background: linear-gradient(135deg, var(--danger), #dc2626);
+    padding: 1.5rem;
+    border-radius: 1rem;
+    text-align: center;
+    color: white;
+}
+
+.amount-label {
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+    opacity: 0.9;
+}
+
+.amount-value {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.amount-note {
+    font-size: 0.85rem;
+    opacity: 0.8;
+}
+
+.breakdown-table {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.breakdown-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: var(--bg-secondary);
+    border-radius: 0.5rem;
+    border: 1px solid var(--border);
+}
+
+.breakdown-row.positive {
+    border-left: 4px solid var(--success);
+}
+
+.breakdown-row.negative {
+    border-left: 4px solid var(--danger);
+}
+
+.breakdown-row.total {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(22, 163, 74, 0.05));
+    border: 2px solid var(--success);
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    margin-top: 0.5rem;
+    box-shadow: 0 4px 15px rgba(34, 197, 94, 0.2);
+}
+
+.breakdown-label {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.breakdown-icon {
+    font-size: 1.2rem;
+}
+
+.breakdown-value {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.breakdown-row.total .breakdown-value {
+    color: var(--success);
+    font-size: 1.3rem;
+    font-weight: 700;
+    text-shadow: 0 1px 3px rgba(34, 197, 94, 0.3);
+}
+
+.breakdown-row.total .breakdown-label {
+    color: var(--success);
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 3rem;
+}
+
+.action-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 1.5rem;
+    border-radius: 0.75rem;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.action-btn.primary {
+    background: var(--info);
+    color: white;
+}
+
+.action-btn.primary:hover {
+    background: #2563eb;
+    transform: translateY(-2px);
+    color: white;
+}
+
+.action-btn.secondary {
+    background: var(--accent-primary);
+    color: white;
+}
+
+.action-btn.secondary:hover {
+    background: var(--accent-secondary);
+    transform: translateY(-2px);
+    color: white;
+}
+
+.action-btn.outline {
+    background: transparent;
+    color: var(--text-primary);
+    border-color: var(--border);
+}
+
+.action-btn.outline:hover {
+    background: var(--bg-card);
+    border-color: var(--accent-primary);
+    color: var(--text-primary);
+}
+
+.btn-icon {
+    font-size: 1.1rem;
+}
+
+/* Congratulations Banner Styles */
+.congratulations-banner {
+    margin: 2rem 0;
+    border-radius: 1.5rem;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    animation: slideIn 0.8s ease-out;
+}
+
+.congratulations-banner.profit {
+    background: linear-gradient(135deg, #059669, #10b981);
+    color: white;
+}
+
+.congratulations-banner.loss {
+    background: linear-gradient(135deg, #dc2626, #ef4444);
+    color: white;
+}
+
+.congratulations-banner.breakeven {
+    background: linear-gradient(135deg, #2563eb, #3b82f6);
+    color: white;
+}
+
+.banner-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    opacity: 0.1;
+}
+
+.congratulations-banner.profit .banner-background {
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="20" cy="20" r="2" fill="white"><animate attributeName="opacity" values="0;1;0" dur="2s" repeatCount="indefinite"/></circle><circle cx="80" cy="40" r="1.5" fill="white"><animate attributeName="opacity" values="0;1;0" dur="1.5s" repeatCount="indefinite" begin="0.5s"/></circle><circle cx="40" cy="70" r="1" fill="white"><animate attributeName="opacity" values="0;1;0" dur="1.8s" repeatCount="indefinite" begin="1s"/></circle></svg>');
+}
+
+.confetti-animation {
+    position: absolute;
+    top: -10px;
+    left: -10px;
+    right: -10px;
+    bottom: -10px;
+    background: radial-gradient(circle at 20% 30%, rgba(255,255,255,0.3) 1px, transparent 1px),
+                radial-gradient(circle at 70% 20%, rgba(255,255,255,0.2) 1px, transparent 1px),
+                radial-gradient(circle at 40% 80%, rgba(255,255,255,0.25) 1px, transparent 1px);
+    animation: confetti 3s ease-in-out infinite;
+}
+
+.banner-content {
+    position: relative;
+    z-index: 1;
+    padding: 2.5rem;
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+}
+
+.banner-icon {
+    font-size: 4rem;
+    opacity: 0.9;
+    animation: bounce 2s ease-in-out infinite;
+}
+
+.banner-text {
+    flex: 1;
+}
+
+.banner-title {
+    font-size: 2rem;
+    font-weight: 800;
+    margin-bottom: 0.75rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.banner-message {
+    font-size: 1.2rem;
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+    opacity: 0.95;
+}
+
+.banner-stats {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    opacity: 0.8;
+    font-weight: 500;
+}
+
+.stat-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.95);
+}
+
+@keyframes confetti {
+    0%, 100% {
+        transform: translateY(0) rotate(0deg);
+        opacity: 0.7;
+    }
+    50% {
+        transform: translateY(-20px) rotate(180deg);
+        opacity: 1;
+    }
+}
+
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateY(0);
+    }
+    40% {
+        transform: translateY(-10px);
+    }
+    60% {
+        transform: translateY(-5px);
+    }
+}
+
+/* Receivable Highlight Styles */
+.receivable-highlight {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(22, 163, 74, 0.1));
+    border: 2px solid var(--success);
+    border-radius: 1rem;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 8px 32px rgba(34, 197, 94, 0.2);
+    animation: slideInUp 0.6s ease-out;
+}
+
+.receivable-content {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    justify-content: center;
+}
+
+.receivable-icon {
+    font-size: 3rem;
+    animation: bounce 2s infinite;
+}
+
+.receivable-details {
+    text-align: center;
+}
+
+.receivable-label {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 500;
+}
+
+.receivable-amount {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--success);
+    margin-bottom: 0.25rem;
+    text-shadow: 0 2px 4px rgba(34, 197, 94, 0.3);
+    line-height: 1;
+}
+
+.receivable-note {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+@keyframes slideInUp {
+    from {
+        transform: translateY(30px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateY(0);
+    }
+    40% {
+        transform: translateY(-10px);
+    }
+    60% {
+        transform: translateY(-5px);
+    }
+}
+
+@media (max-width: 768px) {
+    .result-container {
+        padding: 1rem;
+    }
+    
+    .success-title {
+        font-size: 2rem;
+    }
+    
+    .summary-grid, .profit-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+    
+    .profit-item.final {
+        grid-column: span 2;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .action-btn {
+        width: 100%;
+        max-width: 300px;
+        justify-content: center;
+    }
+    
+    .card-header {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+    
+    .congratulations-banner .banner-content {
+        flex-direction: column;
+        text-align: center;
+        gap: 1.5rem;
+        padding: 2rem 1.5rem;
+    }
+    
+    .banner-title {
+        font-size: 1.6rem;
+    }
+    
+    .banner-message {
+        font-size: 1.1rem;
+    }
+    
+    .banner-stats {
+        justify-content: center;
+        gap: 1.5rem;
+    }
+    
+    .receivable-amount {
+        font-size: 2.5rem;
+    }
+    
+    .receivable-title {
+        font-size: 1.5rem;
+    }
+    
+    .receivable-highlight {
+        padding: 2rem 1.5rem;
+    }
+}
+</style>
+{% endblock %}

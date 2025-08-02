@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block title %}Edit Sell Transaction{% endblock %}
+{% block content %}
+<div class="buy-form-container">
+    <div class="form-header">
+        <div class="header-content">
+            <h1 class="form-title">✏️ Edit Sell Transaction</h1>
+            <p class="form-subtitle">
+                Update your share sale details and recalculate profit/loss
+            </p>
+        </div>
+        <div class="market-indicator">
+            <span class="market-status">Edit Mode - Update sale transaction details</span>
+        </div>
+
+    </div>
+
+    <div style="margin-bottom: 1rem;">
+        <a href="{% url 'sharehub_holding_detail' scrip=scrip %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none; padding: 0.5rem 1rem; border-radius: 0.5rem; background: var(--accent-color); color: white;">
+            ← Back to {{ scrip }} Details
+        </a>
+    </div>
+
+    <div class="buy-form-card">
+        <form method="post" id="sellForm" class="modern-form">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="scrip" class="form-label">Stock Symbol</label>
+                <input type="text" id="scrip" name="scrip" class="form-input" value="{{ transaction.scrip|default:scrip }}" readonly style="background:#f3f4f6; color:#888; cursor:not-allowed;">
+            </div>
+            <div class="form-group">
+                <label for="units_sold" class="form-label">Units Sold</label>
+                <input type="number" name="units_sold" id="units_sold" class="form-input" value="{{ transaction.units_sold|default_if_none:'' }}" required min="1">
+            </div>
+            <div class="form-group">
+                <label for="selling_price" class="form-label">Selling Price (Rs.)</label>
+                <input type="number" name="selling_price" id="selling_price" class="form-input" value="{{ transaction.selling_price|default_if_none:'' }}" step="0.01" required min="0.01">
+            </div>
+            <div class="form-group">
+                <label for="transaction_date" class="form-label">Transaction Date</label>
+                <input type="date" name="transaction_date" id="transaction_date" class="form-input" value="{{ transaction.transaction_date|date:'Y-m-d' }}" required>
+            </div>
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem; font-size: 1rem;">
+                    ✏️ Update Transaction
+                </button>
+            </div>
+        </form>
+    </div>
+{% endblock %}
+

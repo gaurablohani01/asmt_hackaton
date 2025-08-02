@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Email Verification - Code Bulls</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f7f7f7; }
+    .container { background: #fff; max-width: 500px; margin: 40px auto; padding: 32px; border-radius: 8px; box-shadow: 0 2px 8px #e0e0e0; }
+    .btn { display: inline-block; background: #007bff; color: #fff; padding: 12px 24px; border-radius: 4px; text-decoration: none; font-weight: bold; }
+    .btn:hover { background: #0056b3; }
+    .footer { margin-top: 32px; color: #888; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Welcome to Code Bulls!</h2>
+    <p>Thank you for registering. Please verify your email address to activate your account.</p>
+    <p style="margin: 32px 0; text-align: center;">
+      <a href="{{ verification_link }}" class="btn">Verify Email</a>
+    </p>
+    <p>If the button above does not work, copy and paste the following link into your browser:</p>
+    <p style="word-break: break-all;">{{ verification_link }}</p>
+    <div class="footer">
+      If you did not register for Code Bulls, you can ignore this email.<br>
+      &copy; {{ year }} Code Bulls
+    </div>
+  </div>
+</body>
+</html>

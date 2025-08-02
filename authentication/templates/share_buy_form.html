@@ -1,0 +1,729 @@
+{% extends 'base.html' %}
+
+{% block title %}Buy Shares - Code Bulls{% endblock %}
+
+{% block content %}
+<div class="buy-form-container">
+    <div class="form-header">
+        <div class="header-content">
+            <h1 class="form-title">📈 {% if is_edit %}Edit{% else %}Buy{% endif %} Shares</h1>
+            <p class="form-subtitle">
+                {% if is_edit %}
+                    Edit your share purchase details and recalculate costs
+                {% else %}
+                    Purchase shares and calculate all associated costs automatically
+                {% endif %}
+            </p>
+        </div>
+        <div class="market-indicator">
+            <span class="market-status">
+                {% if is_edit %}
+                    ✏️ Edit Mode - Update transaction details
+                {% else %}
+                    📝 Manual Entry Mode - Enter stock details for P&L calculation
+                {% endif %}
+            </span>
+        </div>
+    </div>
+
+    {% if is_edit %}
+    <div style="margin-bottom: 1rem;">
+        <a href="{% url 'sharehub_holding_detail' scrip=scrip %}" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none; padding: 0.5rem 1rem; border-radius: 0.5rem; background: var(--accent-color); color: white;">
+            ← Back to {{ scrip }} Details
+        </a>
+    </div>
+    {% endif %}
+
+    <div class="buy-form-card">
+        <form method="post" id="buyForm" class="modern-form">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="stock_search" class="form-label">
+                    Stock Symbol
+                </label>
+                {% if is_edit %}
+                    <input type="text" id="scrip" name="scrip" class="form-input" value="{{ transaction.scrip }}" readonly style="background:#f3f4f6; color:#888; cursor:not-allowed;">
+                {% else %}
+                    <select id="stock_search" class="form-input" style="width:100%; margin-bottom:0.5rem;" onchange="onStockSelect(this)" >
+                        <option value="">-- Search or select a stock --</option>
+                        {% if nepse_stocks and nepse_stocks|length > 0 %}
+                            {% for stock in nepse_stocks %}
+                                <option value="{{ stock.symbol }}" data-ltp="{{ stock.ltp }}" data-change="{{ stock.change }}" data-changepercent="{{ stock.changePercent }}" data-todayloss="{{ stock.today_loss }}" data-todaygain="{{ stock.today_gain }}">
+                                    {{ stock.symbol }} - {{ stock.companyName }} | LTP: Rs.{{ stock.ltp|floatformat:2 }} | {% if stock.change %}{% if stock.change > 0 %}+{% endif %}{{ stock.change|floatformat:2 }}{% else %}0.00{% endif %} ({% if stock.changePercent %}{% if stock.changePercent > 0 %}+{% endif %}{{ stock.changePercent|floatformat:2 }}%{% else %}0.00%{% endif %})
+                                </option>
+                            {% endfor %}
+                        {% else %}
+                            <option value="" disabled>No NEPSE stocks available (API error or offline)</option>
+                        {% endif %}
+                    </select>
+                    <input type="text" id="scrip" name="scrip" class="form-input" placeholder="Or enter stock symbol manually (e.g. NABIL)" style="margin-top:0.5rem; text-transform:uppercase;" value="" autocomplete="off">
+                    <div id="scrip-warning" style="color:#e74c3c; font-size:0.9rem; margin-top:0.3rem; display:none;"></div>
+                    <small style="color: var(--text-secondary); font-size: 0.8rem;">
+                        {% if not nepse_stocks or nepse_stocks|length == 0 %}
+                            <span style="color: #e74c3c;">Could not load NEPSE stocks. Please try again later.</span>
+                        {% else %}
+                            Select a stock to autofill price and view LTP, or enter a symbol manually if not found.
+                        {% endif %}
+                    </small>
+                {% endif %}
+            </div>
+            <script>
+            // Get NEPSE stock symbols as a JS array
+            var nepseSymbols = [
+                {% if nepse_stocks and nepse_stocks|length > 0 %}
+                    {% for stock in nepse_stocks %}'{{ stock.symbol|escapejs }}'{% if not forloop.last %},{% endif %}{% endfor %}
+                {% endif %}
+            ];
+
+            function onStockSelect(sel) {
+                var ltp = sel.options[sel.selectedIndex].getAttribute('data-ltp');
+                var change = sel.options[sel.selectedIndex].getAttribute('data-change');
+                var changePercent = sel.options[sel.selectedIndex].getAttribute('data-changepercent');
+                var todayLoss = sel.options[sel.selectedIndex].getAttribute('data-todayloss');
+                var todayGain = sel.options[sel.selectedIndex].getAttribute('data-todaygain');
+                var scripInput = document.getElementById('scrip');
+                var scripWarning = document.getElementById('scrip-warning');
+                var submitBtn = document.querySelector('button[type="submit"]');
+                if(sel.value) {
+                    if(ltp && !isNaN(ltp)) {
+                        document.getElementById('buying_price').value = ltp;
+                    }
+                    // Autofill scrip input with selected symbol
+                    if(scripInput) {
+                        scripInput.value = sel.value;
+                        validateScrip(sel.value);
+                    }
+                    // Show market info in a modern, clear way
+                    var info = '';
+                    info += '<span style="font-weight:600;">LTP:</span> <span style="color:#10b981;font-weight:700;">Rs. ' + (ltp ? parseFloat(ltp).toFixed(2) : 'N/A') + '</span> ';
+                    if(change && !isNaN(change)) {
+                        var ch = parseFloat(change);
+                        var chColor = ch > 0 ? '#10b981' : (ch < 0 ? '#ef4444' : '#888');
+                        var chSign = ch > 0 ? '+' : '';
+                        info += '<span style="margin-left:1.2em;font-weight:600;">Change:</span> <span style="color:' + chColor + ';font-weight:700;">' + chSign + ch.toFixed(2) + '</span> ';
+                    }
+                    if(changePercent && !isNaN(changePercent)) {
+                        var cp = parseFloat(changePercent);
+                        var cpColor = cp > 0 ? '#10b981' : (cp < 0 ? '#ef4444' : '#888');
+                        var cpSign = cp > 0 ? '+' : '';
+                        info += '<span style="margin-left:1.2em;font-weight:600;">(' + cpSign + cp.toFixed(2) + '%)</span> ';
+                    }
+                    // Show only today's profit or loss (not both)
+                    if(todayLoss && !isNaN(todayLoss) && parseFloat(todayLoss) < 0) {
+                        info += '<span style="margin-left:2em;color:#ef4444;font-weight:700;">Today\'s Loss: Rs. ' + Math.abs(parseFloat(todayLoss)).toFixed(2) + '</span>';
+                    } else if(todayGain && !isNaN(todayGain) && parseFloat(todayGain) > 0) {
+                        info += '<span style="margin-left:2em;color:#10b981;font-weight:700;">Today\'s Profit: Rs. ' + parseFloat(todayGain).toFixed(2) + '</span>';
+                    }
+                    document.getElementById('market-info').innerHTML = info;
+                } else {
+                    if(scripInput) {
+                        scripInput.value = '';
+                        validateScrip('');
+                    }
+                    document.getElementById('market-info').innerHTML = '';
+                }
+            }
+
+            // When user types in scrip input, update select and validate
+            document.getElementById('scrip').addEventListener('input', function() {
+                var val = this.value.toUpperCase();
+                var select = document.getElementById('stock_search');
+                // Try to select the matching option
+                var found = false;
+                for (var i = 0; i < select.options.length; i++) {
+                    if (select.options[i].value === val) {
+                        select.selectedIndex = i;
+                        onStockSelect(select);
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    select.selectedIndex = 0;
+                    validateScrip(val);
+                    document.getElementById('market-info').innerHTML = '';
+                }
+            });
+
+            // Validate scrip symbol
+            function validateScrip(val) {
+                var scripWarning = document.getElementById('scrip-warning');
+                var submitBtn = document.querySelector('button[type="submit"]');
+                if (!val || nepseSymbols.indexOf(val) === -1) {
+                    scripWarning.style.display = 'block';
+                    scripWarning.textContent = 'Stock not listed in NEPSE. You cannot purchase unlisted shares.';
+                    if (submitBtn) submitBtn.disabled = true;
+                } else {
+                    scripWarning.style.display = 'none';
+                    scripWarning.textContent = '';
+                    if (submitBtn) submitBtn.disabled = false;
+                }
+            }
+
+            // On page load, validate initial value
+            document.addEventListener('DOMContentLoaded', function() {
+                var scripInput = document.getElementById('scrip');
+                if (scripInput && scripInput.value) {
+                    validateScrip(scripInput.value.toUpperCase());
+                }
+            });
+            </script>
+            <div id="market-info" style="margin:0.5rem 0 1rem 0; font-size:1.1rem; font-weight:600;"></div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;" class="form-grid">
+                <div class="form-group">
+                    <label for="units" class="form-label">Number of Units</label>
+                    <input 
+                        type="number" 
+                        name="units" 
+                        id="units" 
+                        class="form-input" 
+                        required 
+                        min="1"
+                        placeholder="100"
+                        {% if is_edit %}value="{{ transaction.units }}"{% endif %}
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label for="buying_price" class="form-label">Price per Unit (Rs.)</label>
+                    <input 
+                        type="number" 
+                        name="buying_price" 
+                        id="buying_price" 
+                        class="form-input" 
+                        step="0.01" 
+                        required 
+                        min="0.01"
+                        placeholder="1200.50"
+                        {% if is_edit %}value="{{ transaction.buying_price }}"{% endif %}
+                    >
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="transaction_date" class="form-label">Transaction Date</label>
+                <input 
+                    type="date" 
+                    name="transaction_date" 
+                    id="transaction_date" 
+                    class="form-input" 
+                    required
+                    {% if is_edit %}value="{{ transaction.transaction_date|date:'Y-m-d' }}"{% endif %}
+                >
+            </div>
+
+            <!-- Data Source Options -->
+            <div class="form-section">
+                <div class="section-title">📥 Data Entry Options</div>
+                <div class="data-source-options">
+                    <div class="option-card">
+                        <div class="option-header">
+                            <h4>📝 Manual Entry</h4>
+                            <span class="option-status active">CURRENT MODE</span>
+                        </div>
+                        <p>Enter stock details manually for P&L calculation and portfolio tracking</p>
+                    </div>
+                    
+                    <div class="option-card">
+                        <div class="option-header">
+                            <h4>🚀 TMS Data Fetch</h4>
+                            <span class="option-status">AVAILABLE</span>
+                        </div>
+                        <p>Automatically fetch your buy/sell transactions from TMS Nepse (requires manual login)</p>
+                        <button type="button" class="btn btn-tms" onclick="fetchFromTMS()">
+                            🔄 Fetch from TMS
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cost Preview -->
+            <div id="costPreview" class="cost-preview" style="display: none;">
+                <div class="preview-title">
+                    <h4>💰 Cost Preview</h4>
+                </div>
+                <div class="preview-grid">
+                    <div class="preview-label">Share Value:</div>
+                    <div class="preview-value" id="shareValue">Rs. 0.00</div>
+                    <div class="preview-label">Est. Total Cost:</div>
+                    <div class="preview-total" id="totalCost">Rs. 0.00</div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem; font-size: 1rem;">
+                    {% if is_edit %}
+                        ✏️ Update Transaction
+                    {% else %}
+                        📊 Calculate & Record Purchase
+                    {% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Info Card -->
+    <div id="calculationDetails" class="info-card" style="display: none;">
+        <h3 class="info-title">📋 What We Calculate</h3>
+        <div style="display: grid; gap: 0.5rem; font-size: 0.9rem;">
+            <div style="display: flex; justify-content: space-between;">
+                <span style="color: var(--text-secondary);">SEBON Fee:</span>
+                <span id="calcSebonFee" style="color: var(--text-primary);">Rs. 0.00</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+                <span style="color: var(--text-secondary);">DP Charge:</span>
+                <span style="color: var(--text-primary);">Rs. 25.00</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+                <span style="color: var(--text-secondary);">Broker Commission:</span>
+                <span id="calcBrokerCommission" style="color: var(--text-primary);">Rs. 0.00</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+                <span style="color: var(--text-secondary);">WACC:</span>
+                <span id="calcWACC" style="color: var(--text-primary);">Rs. 0.00</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.buy-form-container {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 2rem;
+    background: var(--bg-primary);
+    min-height: 100vh;
+}
+
+.form-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding: 2rem;
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    border-radius: 1.5rem;
+    color: white;
+    box-shadow: 0 8px 32px rgba(76, 175, 80, 0.3);
+}
+
+.form-title {
+    font-size: 2.2rem;
+    font-weight: 700;
+    margin: 0;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.form-subtitle {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    margin: 0.5rem 0 0 0;
+}
+
+.market-indicator {
+    padding: 0.75rem 1.5rem;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2rem;
+    backdrop-filter: blur(10px);
+    font-weight: 500;
+}
+
+.market-status {
+    font-size: 0.9rem;
+}
+
+.buy-form-card {
+    background: var(--bg-card);
+    border-radius: 1.5rem;
+    padding: 2.5rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--border);
+}
+
+.modern-form .form-group {
+    margin-bottom: 1.5rem;
+}
+
+.modern-form .form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+}
+
+.modern-form .form-input {
+    width: 100%;
+    padding: 1rem;
+    border: 2px solid var(--border);
+    border-radius: 0.75rem;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+.modern-form .form-input:focus {
+    border-color: var(--accent-primary);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+    transform: translateY(-1px);
+}
+
+.modern-form .form-input:hover {
+    border-color: var(--accent-primary);
+}
+
+.modern-form .form-select {
+    padding: 0.75rem;
+    border: 2px solid var(--border);
+    border-radius: 0.5rem;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    width: 100%;
+    cursor: pointer;
+}
+
+.modern-form .form-select:focus {
+    border-color: var(--accent-primary);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+    transform: translateY(-1px);
+}
+
+.modern-form .form-select:hover {
+    border-color: var(--accent-primary);
+}
+
+.btn-link {
+    background: none;
+    border: none;
+    color: var(--accent-primary);
+    cursor: pointer;
+    text-decoration: underline;
+    font-size: 0.9rem;
+    padding: 0.25rem;
+}
+
+.btn-link:hover {
+    color: var(--text-primary);
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.cost-preview {
+    background: linear-gradient(135deg, var(--bg-secondary), var(--bg-card));
+    padding: 1.5rem;
+    border-radius: 1rem;
+    margin: 1.5rem 0;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.preview-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.preview-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    font-size: 0.95rem;
+}
+
+.preview-label {
+    color: var(--text-secondary);
+}
+
+.preview-value {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.preview-total {
+    color: var(--accent-primary);
+    font-weight: 700;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    border: none;
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 0.75rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(76, 175, 80, 0.4);
+}
+
+.btn-primary:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.info-card {
+    margin-top: 2rem;
+    background: var(--bg-card);
+    padding: 2rem;
+    border-radius: 1.5rem;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.info-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.loading {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top: 2px solid white;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Data Source Options */
+.form-section {
+    margin: 2rem 0;
+}
+
+.section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+}
+
+.data-source-options {
+    display: grid;
+    gap: 1rem;
+}
+
+.option-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.option-card:hover {
+    border-color: var(--accent-primary);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.1);
+}
+
+.option-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.option-header h4 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
+.option-status {
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.option-status.active {
+    background: rgba(76, 175, 80, 0.2);
+    color: var(--accent-primary);
+    border: 1px solid var(--accent-primary);
+}
+
+.option-status:not(.active) {
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+}
+
+.option-card p {
+    color: var(--text-secondary);
+    margin: 0.5rem 0 1rem 0;
+    font-size: 0.9rem;
+}
+
+.btn-tms {
+    background: linear-gradient(135deg, #2196F3, #1976D2);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+}
+
+.btn-tms:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(33, 150, 243, 0.4);
+}
+
+@media (max-width: 768px) {
+    .buy-form-container {
+        padding: 1rem;
+    }
+    
+    .form-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
+    
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .buy-form-card {
+        padding: 1.5rem;
+    }
+    
+    .option-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+}
+</style>
+
+<script>
+
+    // Auto-uppercase scrip input (already handled inline)
+
+    // Real-time cost calculation
+    function updateCostPreview() {
+        const units = parseFloat(document.getElementById('units').value) || 0;
+        const price = parseFloat(document.getElementById('buying_price').value) || 0;
+        
+        if (units > 0 && price > 0) {
+            const shareValue = units * price;
+            const sebonFee = shareValue * 0.00015;
+            const dpCharge = 25;
+            
+            // Simplified broker commission calculation (using average rate)
+            let brokerRate = 0.36; // Default rate
+            if (shareValue <= 50000) brokerRate = 0.36;
+            else if (shareValue <= 500000) brokerRate = 0.33;
+            else if (shareValue <= 2000000) brokerRate = 0.31;
+            else if (shareValue <= 10000000) brokerRate = 0.27;
+            else brokerRate = 0.24;
+            
+            const brokerCommission = shareValue * (brokerRate / 100);
+            const totalCost = shareValue + sebonFee + dpCharge + brokerCommission;
+            const wacc = totalCost / units;
+            
+            // Update cost preview
+            document.getElementById('shareValue').textContent = `Rs. ${shareValue.toLocaleString('en-NP', {minimumFractionDigits: 2})}`;
+            document.getElementById('totalCost').textContent = `Rs. ${totalCost.toLocaleString('en-NP', {minimumFractionDigits: 2})}`;
+            document.getElementById('costPreview').style.display = 'block';
+            
+            // Update calculation details
+            document.getElementById('calcSebonFee').textContent = `Rs. ${sebonFee.toFixed(2)}`;
+            document.getElementById('calcBrokerCommission').textContent = `Rs. ${brokerCommission.toFixed(2)}`;
+            document.getElementById('calcWACC').textContent = `Rs. ${wacc.toFixed(2)}`;
+            document.getElementById('calculationDetails').style.display = 'block';
+        } else {
+            document.getElementById('costPreview').style.display = 'none';
+            document.getElementById('calculationDetails').style.display = 'none';
+        }
+    }
+
+    document.getElementById('units').addEventListener('input', updateCostPreview);
+    document.getElementById('buying_price').addEventListener('input', updateCostPreview);
+
+    // Form submission
+    document.getElementById('buyForm').addEventListener('submit', function(e) {
+        const button = this.querySelector('button[type="submit"]');
+        button.innerHTML = '<div class="loading"></div> Processing...';
+        button.disabled = true;
+    });
+
+    // Set today's date as default
+    document.addEventListener('DOMContentLoaded', function() {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('transaction_date').value = today;
+        document.getElementById('scrip').focus();
+    });
+
+    // TMS data fetch function
+    function fetchFromTMS() {
+        if (confirm('This will redirect you to the TMS data fetch page where you can login manually and import your transactions. Continue?')) {
+            // Create a form to submit the fetch request
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '';
+            
+            // Add CSRF token
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrfmiddlewaretoken';
+            csrfInput.value = csrfToken;
+            form.appendChild(csrfInput);
+            
+            // Add fetch_from_tms flag
+            const fetchInput = document.createElement('input');
+            fetchInput.type = 'hidden';
+            fetchInput.name = 'fetch_from_tms';
+            fetchInput.value = 'true';
+            form.appendChild(fetchInput);
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
+
+</script>
+{% endblock %}

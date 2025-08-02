@@ -1,0 +1,344 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Page Not Found - NEPSE Portfolio{% endblock %}
+
+{% block extra_css %}
+<style>
+    .error-container {
+        min-height: 80vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+    }
+    
+    .error-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(25px);
+        border: 1px solid var(--glass-border);
+        border-radius: 1.5rem;
+        padding: 3rem;
+        text-align: center;
+        max-width: 600px;
+        width: 100%;
+        box-shadow: var(--shadow-lg);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .error-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: var(--shimmer);
+        opacity: 0.1;
+        animation: shimmer 3s linear infinite;
+        pointer-events: none;
+    }
+    
+    .error-number {
+        font-size: 8rem;
+        font-weight: 900;
+        background: var(--gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        line-height: 1;
+        margin-bottom: 1rem;
+        text-shadow: 0 0 30px rgba(99, 102, 241, 0.3);
+    }
+    
+    .error-title {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 1rem;
+    }
+    
+    .error-subtitle {
+        font-size: 1.2rem;
+        color: var(--text-secondary);
+        margin-bottom: 2rem;
+        line-height: 1.6;
+    }
+    
+    .error-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-bottom: 2rem;
+    }
+    
+    .error-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.875rem 1.75rem;
+        border: none;
+        border-radius: 0.75rem;
+        font-weight: 600;
+        text-decoration: none;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        font-size: 0.95rem;
+        position: relative;
+        overflow: hidden;
+        backdrop-filter: blur(10px);
+    }
+    
+    .error-btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        transition: left 0.5s ease;
+    }
+    
+    .error-btn:hover::before {
+        left: 100%;
+    }
+    
+    .error-btn-primary {
+        background: var(--gradient);
+        color: white;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--glass-border);
+    }
+    
+    .error-btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+    }
+    
+    .error-btn-secondary {
+        background: var(--glass-bg);
+        color: var(--text-primary);
+        border: 1px solid var(--glass-border);
+        box-shadow: var(--shadow);
+    }
+    
+    .error-btn-secondary:hover {
+        background: rgba(99, 102, 241, 0.1);
+        border-color: var(--accent-primary);
+        color: var(--accent-primary);
+        transform: translateY(-2px);
+    }
+    
+    .error-suggestions {
+        background: rgba(99, 102, 241, 0.1);
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        margin-top: 2rem;
+    }
+    
+    .suggestions-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .suggestions-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .suggestions-list li {
+        padding: 0.5rem 0;
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .suggestions-list li::before {
+        content: '→';
+        color: var(--accent-primary);
+        font-weight: bold;
+    }
+    
+    .suggestions-list a {
+        color: var(--accent-primary);
+        text-decoration: none;
+        transition: color 0.3s ease;
+    }
+    
+    .suggestions-list a:hover {
+        color: var(--text-primary);
+        text-decoration: underline;
+    }
+    
+    .floating-shapes {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        pointer-events: none;
+        overflow: hidden;
+    }
+    
+    .shape {
+        position: absolute;
+        opacity: 0.1;
+        animation: float 6s ease-in-out infinite;
+    }
+    
+    .shape-1 {
+        top: 20%;
+        left: 10%;
+        width: 60px;
+        height: 60px;
+        background: var(--accent-primary);
+        border-radius: 50%;
+        animation-delay: 0s;
+    }
+    
+    .shape-2 {
+        top: 60%;
+        right: 15%;
+        width: 40px;
+        height: 40px;
+        background: var(--success);
+        border-radius: 20%;
+        animation-delay: 2s;
+    }
+    
+    .shape-3 {
+        bottom: 30%;
+        left: 20%;
+        width: 80px;
+        height: 20px;
+        background: var(--warning);
+        border-radius: 10px;
+        animation-delay: 4s;
+    }
+    
+    @keyframes float {
+        0%, 100% { transform: translateY(0px) rotate(0deg); }
+        50% { transform: translateY(-20px) rotate(180deg); }
+    }
+    
+    @keyframes shimmer {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+    }
+    
+    @media (max-width: 768px) {
+        .error-card {
+            padding: 2rem;
+            margin: 1rem;
+        }
+        
+        .error-number {
+            font-size: 6rem;
+        }
+        
+        .error-title {
+            font-size: 1.5rem;
+        }
+        
+        .error-subtitle {
+            font-size: 1rem;
+        }
+        
+        .error-actions {
+            flex-direction: column;
+        }
+        
+        .error-btn {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="error-container">
+    <div class="error-card">
+        <div class="floating-shapes">
+            <div class="shape shape-1"></div>
+            <div class="shape shape-2"></div>
+            <div class="shape shape-3"></div>
+        </div>
+        
+        <div class="error-number">404</div>
+        <h1 class="error-title">Oops! Page Not Found</h1>
+        <p class="error-subtitle">
+            The page you're looking for seems to have wandered off into the stock market void. 
+            Don't worry, we'll help you get back on track with your portfolio!
+        </p>
+        
+        <div class="error-actions">
+            <a href="{% url 'home' %}" class="error-btn error-btn-primary">
+                <i class="fas fa-home"></i>
+                Go Home
+            </a>
+            <a href="{% url 'sharehub_portfolio' %}" class="error-btn error-btn-secondary">
+                <i class="fas fa-briefcase"></i>
+                View Portfolio
+            </a>
+            <button onclick="history.back()" class="error-btn error-btn-secondary">
+                <i class="fas fa-arrow-left"></i>
+                Go Back
+            </button>
+        </div>
+        
+        <div class="error-suggestions">
+            <div class="suggestions-title">
+                <i class="fas fa-lightbulb"></i>
+                What you might be looking for:
+            </div>
+            <ul class="suggestions-list">
+                <li><a href="{% url 'home' %}">Dashboard</a> - Your portfolio overview</li>
+                <li><a href="{% url 'sharehub_portfolio' %}">Portfolio</a> - Manage your holdings</li>
+                <li><a href="{% url 'share_buy' %}">Buy Shares</a> - Add new investments</li>
+                <li><a href="{% url 'share_sell' %}">Sell Shares</a> - Manage your sales</li>
+                <li><a href="{% url 'fetch_tms_data' %}">TMS Data</a> - Sync your data</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+// Add some interactive elements
+document.addEventListener('DOMContentLoaded', function() {
+    // Add click effect to error number
+    const errorNumber = document.querySelector('.error-number');
+    errorNumber.addEventListener('click', function() {
+        this.style.transform = 'scale(1.1)';
+        setTimeout(() => {
+            this.style.transform = 'scale(1)';
+        }, 200);
+    });
+    
+    // Add hover effect to floating shapes
+    const shapes = document.querySelectorAll('.shape');
+    shapes.forEach(shape => {
+        shape.addEventListener('mouseenter', function() {
+            this.style.opacity = '0.3';
+            this.style.transform = 'scale(1.2)';
+        });
+        
+        shape.addEventListener('mouseleave', function() {
+            this.style.opacity = '0.1';
+            this.style.transform = 'scale(1)';
+        });
+    });
+});
+</script>
+{% endblock %}

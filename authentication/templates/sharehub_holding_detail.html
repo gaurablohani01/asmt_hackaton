@@ -1,0 +1,1081 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ scrip }} - Portfolio Details{% endblock %}
+
+{% block content %}
+<style>
+    :root {
+        --primary: #2563eb;
+        --primary-dark: #1d4ed8;
+        --primary-light: #3b82f6;
+        --success: #10b981;
+        --danger: #ef4444;
+        --warning: #f59e0b;
+        --info: #06b6d4;
+        --dark: #1e293b;
+        --darker: #0f172a;
+        --light: #f8fafc;
+        --lighter: #ffffff;
+        --muted: #94a3b8;
+        --border: #e2e8f0;
+        --card-bg: #ffffff;
+        --card-shadow: 0 4px 6px -1px rgba(252, 252, 252, 0.1), 0 2px 4px -1px rgba(184, 175, 175, 0.06);
+        --card-radius: 12px;
+        --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    body {
+        color: #fff;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        line-height: 1.5;
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 1.5rem;
+    }
+
+    /* Header Styles */
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+
+    .back-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background-color: var(--primary);
+        color: white;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 500;
+        transition: var(--transition);
+    }
+
+    .back-btn:hover {
+        background-color: var(--primary-dark);
+        transform: translateY(-1px);
+    }
+
+    .stock-header {
+        /* Remove blue background, keep spacing and layout */
+        border-radius: var(--card-radius);
+        padding: 2rem;
+        margin-bottom: 2rem;
+        color: inherit;
+        box-shadow: var(--card-shadow);
+        position: relative;
+        overflow: hidden;
+        background: none;
+    }
+
+    .stock-header::before {
+        display: none;
+    }
+
+    .stock-info {
+        position: relative;
+        z-index: 2;
+    }
+
+    .stock-symbol {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .stock-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+        background: none;
+        border-radius: 8px;
+        padding: 1rem 1.5rem;
+        transition: background 0.3s;
+    }
+    .stock-meta.positive {
+        background: linear-gradient(90deg, #22c55e33 0%, #bbf7d0 100%);
+    }
+    .stock-meta.negative {
+        background: linear-gradient(90deg, #ef444433 0%, #fecaca 100%);
+    }
+
+    .meta-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .meta-label {
+        font-size: 0.9rem;
+        opacity: 0.9;
+    }
+
+    .meta-value {
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+
+    .price-change {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        background-color: rgba(255, 255, 255, 0.2);
+        font-weight: 600;
+        margin-right: 0.5rem;
+    }
+
+    .positive {
+        color: var(--success);
+    }
+
+    .negative {
+        color: var(--danger);
+    }
+
+    /* Summary Cards */
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .summary-card {
+        border-radius: var(--card-radius);
+        padding: 1.5rem;
+        box-shadow: var(--card-shadow);
+        transition: var(--transition);
+    }
+
+    .summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    .card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+    }
+
+    .card-title {
+        font-size: 0.9rem;
+        color: var(--muted);
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .card-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: rgba(37, 99, 235, 0.1);
+        color: var(--primary);
+    }
+
+    .card-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+    }
+
+    .card-subtext {
+        font-size: 0.85rem;
+        color: var(--muted);
+    }
+
+    /* Transactions Section */
+    .section-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .section-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        background-color: var(--primary);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+
+    .section-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+    }
+
+    .transactions-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .transaction-item {
+        border-radius: var(--card-radius);
+        padding: 1.25rem;
+        box-shadow: var(--card-shadow);
+        transition: var(--transition);
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .transaction-item::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+    }
+
+    .transaction-item.buy::before {
+        background-color: var(--success);
+    }
+
+    .transaction-item.sell::before {
+        background-color: var(--danger);
+    }
+
+    .transaction-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    .transaction-main {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+
+    .transaction-type {
+        font-weight: 600;
+    }
+
+    .transaction-type.buy {
+        color: var(--success);
+    }
+
+    .transaction-type.sell {
+        color: var(--danger);
+    }
+
+    .transaction-date {
+        font-size: 0.85rem;
+        color: var(--muted);
+    }
+
+    .transaction-details {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border);
+    }
+
+    .detail-item {
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .detail-label {
+        font-size: 0.85rem;
+        color: var(--muted);
+    }
+
+    .detail-value {
+        font-weight: 600;
+    }
+
+    .transaction-actions {
+        display: flex;
+        gap: 0.5rem;
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        opacity: 0;
+        transition: var(--transition);
+    }
+
+    .transaction-item:hover .transaction-actions {
+        opacity: 1;
+    }
+
+    .action-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #f1f5f9;
+        color: #64748b;
+        border: none;
+        cursor: pointer;
+        transition: var(--transition);
+    }
+
+    .action-btn:hover {
+        color: white;
+    }
+
+    .edit-btn:hover {
+        background-color: var(--warning);
+    }
+
+    .delete-btn:hover {
+        background-color: var(--danger);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .container {
+            padding: 1rem;
+        }
+
+        .stock-header {
+            padding: 1.5rem;
+        }
+
+        .stock-symbol {
+            font-size: 2rem;
+        }
+
+        .summary-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .transaction-details {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .summary-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .stock-meta {
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .transaction-main {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+
+        .transaction-actions {
+            position: static;
+            opacity: 1;
+            margin-top: 1rem;
+            justify-content: flex-end;
+        }
+    }
+
+    /* Animation */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .transaction-item {
+        animation: fadeIn 0.3s ease-out forwards;
+    }
+
+    .transaction-item:nth-child(odd) {
+        animation-delay: 0.05s;
+    }
+
+    .transaction-item:nth-child(even) {
+        animation-delay: 0.1s;
+    }
+
+    /* Toggle animation */
+    .transaction-details {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease-out, padding 0.3s ease;
+    }
+
+    .transaction-details.expanded {
+        max-height: 500px;
+        padding-top: 1rem;
+    }
+
+    /* Badges */
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .badge-success {
+        background-color: rgba(16, 185, 129, 0.1);
+        color: var(--success);
+    }
+
+    .badge-danger {
+        background-color: rgba(239, 68, 68, 0.1);
+        color: var(--danger);
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 2rem;
+        background-color: var(--card-bg);
+        border-radius: var(--card-radius);
+        box-shadow: var(--card-shadow);
+    }
+
+    .empty-icon {
+        font-size: 3rem;
+        color: var(--muted);
+        margin-bottom: 1rem;
+    }
+
+    .empty-text {
+        color: var(--muted);
+        margin-bottom: 1.5rem;
+    }
+
+    .empty-action {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1.5rem;
+        background-color: var(--primary);
+        color: white;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 500;
+        transition: var(--transition);
+    }
+
+    .empty-action:hover {
+        background-color: var(--primary-dark);
+        transform: translateY(-2px);
+    }
+</style>
+
+<div class="container">
+    <div class="header">
+        <a href="{% url 'sharehub_portfolio' %}" class="back-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            Back to Portfolio
+        </a>
+    </div>
+
+    <!-- Stock Header -->
+    <div class="stock-header">
+        <div class="stock-info">
+            <h1 class="stock-symbol">{{ scrip }}</h1>
+            {% if change > 0 %}
+                <div class="stock-meta positive">
+            {% elif change < 0 %}
+                <div class="stock-meta negative">
+            {% else %}
+                <div class="stock-meta">
+            {% endif %}
+                <div class="meta-item">
+                    <span class="meta-label">LTP:</span>
+                    <span class="meta-value">Rs {% if ltp %}{{ ltp|floatformat:2 }}{% else %}N/A{% endif %}</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">Change:</span>
+                    <span class="meta-value">
+                        {% if change %}{{ change|floatformat:2 }}{% else %}N/A{% endif %}
+                    </span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">% Change:</span>
+                    <span class="meta-value">
+                        {% if changePercent is not None %}{{ changePercent|floatformat:2 }}%{% else %}N/A{% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary-grid">
+        <div class="summary-card">
+            <div class="card-header">
+                <span class="card-title">Current Units</span>
+                <div class="card-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                </div>
+            </div>
+            <div class="card-value">{{ available_units }}</div>
+            <div class="card-subtext">Currently holding</div>
+        </div>
+
+        <div class="summary-card">
+            <div class="card-header">
+                <span class="card-title">Sold Units</span>
+                <div class="card-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                </div>
+            </div>
+            <div class="card-value">{{ sold_units }}</div>
+            <div class="card-subtext">Total sold</div>
+        </div>
+
+        <div class="summary-card">
+            <div class="card-header">
+                <span class="card-title">Total Investment</span>
+                <div class="card-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="1" x2="12" y2="23"></line>
+                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                    </svg>
+                </div>
+            </div>
+            <div class="card-value">Rs {{ total_investment|floatformat:0 }}</div>
+            <div class="card-subtext">Total amount invested</div>
+        </div>
+
+        <div class="summary-card">
+            <div class="card-header">
+                <span class="card-title">Current Value</span>
+                <div class="card-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2v4"></path>
+                        <path d="M5 10v4a7.004 7.004 0 0 0 5.277 6.787c.412.104.802.292 1.102.592L12 22l.621-.621c.3-.3.69-.488 1.102-.592A7.003 7.003 0 0 0 19 14v-4"></path>
+                        <path d="M12 2C7 2 3 6 3 11v4a9 9 0 0 0 1.863 5.42M16 2c5 0 9 4 9 9v4a9 9 0 0 1-1.863 5.42"></path>
+                        <path d="M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2"></path>
+                        <path d="M12 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"></path>
+                    </svg>
+                </div>
+            </div>
+            <div class="card-value">{% if current_value %}Rs {{ current_value|floatformat:0 }}{% else %}N/A{% endif %}</div>
+            <div class="card-subtext">Based on current LTP</div>
+        </div>
+     
+    </div>
+
+    <!-- Profit/Loss Summary -->
+    <div class="summary-grid">
+        <div class="summary-card">
+            <div class="card-header">
+                <span class="card-title">WACC</span>
+                <div class="card-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="1" x2="12" y2="23"></line>
+                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                    </svg>
+                </div>
+            </div>
+            <div class="card-value">Rs {{ wacc|floatformat:2 }}</div>
+            <div class="card-subtext">Weighted average cost</div>
+        </div>
+
+       
+        {% if available_units|default:0 > 0 %}
+        <div class="summary-card">
+            <div class="card-header">
+                <span class="card-title">Unrealized Profit (net)</span>
+                <div class="card-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2v4"></path>
+                        <path d="M5 10v4a7.004 7.004 0 0 0 5.277 6.787c.412.104.802.292 1.102.592L12 22l.621-.621c.3-.3.69-.488 1.102-.592A7.003 7.003 0 0 0 19 14v-4"></path>
+                        <path d="M12 2C7 2 3 6 3 11v4a9 9 0 0 0 1.863 5.42M16 2c5 0 9 4 9 9v4a9 9 0 0 1-1.863 5.42"></path>
+                        <path d="M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2"></path>
+                        <path d="M12 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"></path>
+                    </svg>
+                </div>
+            </div>
+            <div class="card-value" id="js-unrealized-profit">Calculating...</div>
+            <div class="card-subtext">Receivable - Investment (after all fees)</div>
+        </div>
+        {% endif %}
+
+
+
+        <!-- Receivable Amount (net) card -->
+        <div class="summary-card">
+            <div class="card-header">
+                <span class="card-title">Receivable Amount (net)</span>
+                <div class="card-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="11" width="18" height="10" rx="2"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="card-value" id="js-total-receivable">Rs {{ receivable_amount|floatformat:2 }}</div>
+            <div class="card-subtext">Total receivable if all sold (net of fees/tax)</div>
+        </div>
+
+        <!-- Realized Profit (net) card -->
+        <div class="summary-card">
+            <div class="card-header">
+                <span class="card-title">Realized Profit (net)</span>
+                <div class="card-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 8v4l3 3"></path>
+                    </svg>
+                </div>
+            </div>
+            <div class="card-value" id="js-realized-profit">Rs {{ realized_pnl|floatformat:2 }}</div>
+            <div class="card-subtext">Net profit from all sold units</div>
+        </div>
+
+        <!-- Total profit percent card -->
+        <div class="summary-card">
+            <div class="card-header">
+                <span class="card-title">Total Profit %</span>
+                <div class="card-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12" y2="16"></line>
+                    </svg>
+                </div>
+            </div>
+            <div class="card-value" id="js-total-profit-percent">Calculating...</div>
+            <div class="card-subtext">Total profit as percent of investment</div>
+        </div>
+
+  
+
+        {% if available_units|default:0 > 0 %}
+        <div class="summary-card" title="Today's gain/loss = Change × Current Units (LTP - Prev Close)">
+            <div class="card-header">
+                <span class="card-title">Today Profit/Loss</span>
+                <div class="card-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="1" x2="12" y2="23"></line>
+                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                    </svg>
+                </div>
+            </div>
+            <div class="card-value" id="js-today-pnl">Calculating...</div>
+            <div class="card-subtext">Today Profit/Loss </div>
+        </div>
+        {% endif %}
+</div>
+<script>
+// JS: Estimate receivable, unrealized profit, and profit percent for current holdings at LTP, after all fees/charges (CGT only if profit)
+document.addEventListener('DOMContentLoaded', function() {
+    var ltp = parseFloat('{{ ltp|default:0 }}');
+    var units = parseInt('{{ available_units|default:0 }}');
+    var totalInvestment = parseFloat('{{ total_investment|default:0 }}');
+    var change = parseFloat('{{ change|default:0 }}');
+
+    function calcBrokerCommission(amount) {
+        if (amount <= 50000) return amount * 0.0036;
+        if (amount <= 500000) return amount * 0.0033;
+        if (amount <= 2000000) return amount * 0.0031;
+        if (amount <= 10000000) return amount * 0.0027;
+        return amount * 0.0025;
+    }
+    function calcSebonFee(amount) {
+        return amount * 0.00015;
+    }
+    function calcDPCharge() {
+        return 25; // usually flat
+    }
+    function calcCGT(profit) {
+        return profit > 0 ? profit * 0.075 : 0;
+    }
+
+
+    // Calculate realized, unrealized, total profit, and total receivable
+    var realizedPnl = parseFloat('{{ realized_pnl|default:0 }}');
+    var totalReceivable = 0;
+    var totalProfit = 0;
+
+    if (units === 0) {
+        // All sold: total receivable is realized only, total profit is realized only
+        totalReceivable = realizedPnl;
+        totalProfit = realizedPnl;
+        // Hide unrealized and today P&L cards
+        var unrealizedCard = document.getElementById('js-unrealized-profit');
+        if (unrealizedCard && unrealizedCard.closest('.summary-card')) {
+            unrealizedCard.closest('.summary-card').style.display = 'none';
+        }
+        var todayPLel = document.getElementById('js-today-pnl');
+        if (todayPLel && todayPLel.closest('.summary-card')) {
+            todayPLel.closest('.summary-card').style.display = 'none';
+        }
+    } else {
+        // Not all sold: total receivable is realized + simulated receivable, total profit is realized + unrealized
+        var ltp = parseFloat('{{ ltp|default:0 }}');
+        var gross = ltp * units;
+        var broker = calcBrokerCommission(gross);
+        var sebon = calcSebonFee(gross);
+        var dp = calcDPCharge();
+        var totalInvestment = parseFloat('{{ total_investment|default:0 }}');
+        var profitBeforeCGT = gross - broker - sebon - dp - totalInvestment;
+        var cgt = profitBeforeCGT > 0 ? calcCGT(profitBeforeCGT) : 0;
+        var receivable = gross - broker - sebon - dp - cgt;
+        var unrealized = receivable - totalInvestment;
+        totalReceivable = realizedPnl + receivable;
+        totalProfit = realizedPnl + unrealized;
+    }
+
+    // Update UI for total profit
+    var totalProfitEl = document.getElementById('js-total-profit');
+    if (totalProfitEl) {
+        totalProfitEl.innerText = 'Rs ' + (totalProfit > 0 ? totalProfit.toFixed(2) : (totalProfit < 0 ? totalProfit.toFixed(2) : '0.00'));
+        totalProfitEl.classList.remove('positive', 'negative');
+        if (totalProfit > 0) totalProfitEl.classList.add('positive');
+        else if (totalProfit < 0) totalProfitEl.classList.add('negative');
+    }
+    // Update UI for total profit percent
+    var totalInvestment = parseFloat('{{ total_investment|default:0 }}');
+    var totalProfitPercent = totalInvestment > 0 ? (totalProfit / totalInvestment) * 100 : 0;
+    var totalProfitPercentEl = document.getElementById('js-total-profit-percent');
+    if (totalProfitPercentEl) {
+        totalProfitPercentEl.innerText = (totalProfitPercent > 0 ? '+' : '') + totalProfitPercent.toFixed(2) + '%';
+        totalProfitPercentEl.classList.remove('positive', 'negative');
+        if (totalProfitPercent > 0) totalProfitPercentEl.classList.add('positive');
+        else if (totalProfitPercent < 0) totalProfitPercentEl.classList.add('negative');
+    }
+    // Update UI for total receivable
+    var totalReceivableEl = document.getElementById('js-total-receivable');
+    if (totalReceivableEl) {
+        totalReceivableEl.innerText = 'Rs ' + (totalReceivable > 0 ? totalReceivable.toFixed(2) : (totalReceivable < 0 ? totalReceivable.toFixed(2) : '0.00'));
+    }
+
+    var gross = ltp * units;
+    var broker = calcBrokerCommission(gross);
+    var sebon = calcSebonFee(gross);
+    var dp = calcDPCharge();
+    // Profit for CGT is after all fees except CGT
+    var profitBeforeCGT = gross - broker - sebon - dp - totalInvestment;
+    var cgt = profitBeforeCGT > 0 ? calcCGT(profitBeforeCGT) : 0;
+    var receivable = gross - broker - sebon - dp - cgt;
+
+    var unrealized = receivable - totalInvestment;
+    var percent = totalInvestment > 0 ? (unrealized / totalInvestment) * 100 : 0;
+
+    // Update UI for receivable
+    var receivableEl = document.getElementById('js-est-receivable');
+    if (receivableEl) {
+        receivableEl.innerText = 'Rs ' + (receivable > 0 ? receivable.toFixed(2) : '01.00');
+    }
+    // Update UI for unrealized profit
+    var unrealizedEl = document.getElementById('js-unrealized-profit');
+    if (unrealizedEl) {
+        unrealizedEl.innerText = 'Rs ' + (unrealized > 0 ? unrealized.toFixed(2) : (unrealized < 0 ? unrealized.toFixed(2) : '0.00'));
+        unrealizedEl.classList.remove('positive', 'negative');
+        if (unrealized > 0) unrealizedEl.classList.add('positive');
+        else if (unrealized < 0) unrealizedEl.classList.add('negative');
+    }
+    // Update UI for profit percent
+    var percentEl = document.getElementById('js-profit-percent');
+    if (percentEl) {
+        percentEl.innerText = (percent > 0 ? '+' : '') + percent.toFixed(2) + '%';
+        percentEl.classList.remove('positive', 'negative');
+        if (percent > 0) percentEl.classList.add('positive');
+        else if (percent < 0) percentEl.classList.add('negative');
+    }
+
+    // Calculate and update today's profit/loss (change * units)
+    var todayPL = change * units;
+    var todayPLText = 'Rs ' + (todayPL > 0 ? todayPL.toFixed(2) : todayPL < 0 ? todayPL.toFixed(2) : '0.00');
+    var todayPLel = document.getElementById('js-today-pnl');
+    if (todayPLel) {
+        todayPLel.innerText = todayPLText;
+        todayPLel.classList.remove('positive', 'negative');
+        if (todayPL > 0) todayPLel.classList.add('positive');
+        else if (todayPL < 0) todayPLel.classList.add('negative');
+    }
+});
+</script>
+
+    </div>
+
+    <!-- Transactions Section -->
+    <div class="transactions-section">
+        <div class="section-header">
+            <div class="section-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+            </div>
+            <h2 class="section-title">Transaction History</h2>
+        </div>
+
+        <div class="transactions-list">
+            {% if all_transactions %}
+                {% for transaction_data in all_transactions|dictsortreversed:"transaction.transaction_date" %}
+                    <div class="transaction-item {% if transaction_data.type == 'buy' %}buy{% else %}sell{% endif %}" 
+                         data-transaction-id="transaction-{{ forloop.counter }}"
+                         onclick="toggleTransactionDetails('transaction-{{ forloop.counter }}')">
+                        <div class="transaction-actions">
+                            {% if transaction_data.type == 'buy' %}
+                                <a href="{% url 'edit_buy_transaction' transaction_data.transaction.id %}" class="action-btn edit-btn" title="Edit" onclick="event.stopPropagation();">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                    </svg>
+                                </a>
+                                <button class="action-btn delete-btn" title="Delete" onclick="event.stopPropagation(); confirmDelete('buy', {{ transaction_data.transaction.id }}, '{{ scrip }}');">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="3 6 5 6 21 6"></polyline>
+                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                        <line x1="10" y1="11" x2="10" y2="17"></line>
+                                        <line x1="14" y1="11" x2="14" y2="17"></line>
+                                    </svg>
+                                </button>
+                            {% else %}
+                                {% if transaction_data.individual_transactions %}
+                                    <a href="{% url 'edit_sell_transaction' transaction_data.individual_transactions.0.transaction.id %}" class="action-btn edit-btn" title="Edit" onclick="event.stopPropagation();">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                        </svg>
+                                    </a>
+                                    <button class="action-btn delete-btn" title="Delete" onclick="event.stopPropagation(); confirmDelete('sell', {{ transaction_data.individual_transactions.0.transaction.id }}, '{{ scrip }}');">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="3 6 5 6 21 6"></polyline>
+                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                            <line x1="10" y1="11" x2="10" y2="17"></line>
+                                            <line x1="14" y1="11" x2="14" y2="17"></line>
+                                        </svg>
+                                    </button>
+                                {% else %}
+                                    <a href="{% url 'edit_sell_transaction' transaction_data.transaction.id %}" class="action-btn edit-btn" title="Edit" onclick="event.stopPropagation();">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                        </svg>
+                                    </a>
+                                    <button class="action-btn delete-btn" title="Delete" onclick="event.stopPropagation(); confirmDelete('sell', {{ transaction_data.transaction.id }}, '{{ scrip }}');">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="3 6 5 6 21 6"></polyline>
+                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                            <line x1="10" y1="11" x2="10" y2="17"></line>
+                                            <line x1="14" y1="11" x2="14" y2="17"></line>
+                                        </svg>
+                                    </button>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+
+                        <div class="transaction-main">
+                            <div class="transaction-type {% if transaction_data.type == 'buy' %}buy{% else %}sell{% endif %}">
+                                {% if transaction_data.type == 'buy' %}
+                                    {{ transaction_data.transaction.units }} Units Buy
+                                {% else %}
+                                    {{ transaction_data.transaction.units_sold }} Units Sell
+                                {% endif %}
+                            </div>
+                            <div class="transaction-date">
+                                {{ transaction_data.transaction.transaction_date|date:"M d, Y" }}
+                            </div>
+                        </div>
+
+                        <div class="transaction-details" id="transaction-{{ forloop.counter }}-details">
+                            {% if transaction_data.type == 'buy' %}
+                                <div class="detail-item">
+                                    <span class="detail-label">Buy Price</span>
+                                    <span class="detail-value">Rs {{ transaction_data.transaction.buying_price|floatformat:2 }}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Gross Amount</span>
+                                    <span class="detail-value">Rs {{ transaction_data.gross_amount|floatformat:2 }}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">SEBON Fee</span>
+                                    <span class="detail-value">Rs {{ transaction_data.costs.sebon_fee|floatformat:2 }}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Broker Commission</span>
+                                    <span class="detail-value">Rs {{ transaction_data.costs.broker_commission|floatformat:2 }}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">DP Charge</span>
+                                    <span class="detail-value">Rs {{ transaction_data.costs.dp_charge|floatformat:2 }}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Cost Per Share</span>
+                                    <span class="detail-value">Rs {{ transaction_data.costs.cost_per_share|floatformat:2 }}</span>
+                                </div>
+                                <div class="detail-item" style="border-top: 1px solid var(--border); padding-top: 0.5rem; margin-top: 0.5rem;">
+                                    <span class="detail-label">Total Amount</span>
+                                    <span class="detail-value">Rs {{ transaction_data.costs.total_amount|floatformat:2 }}</span>
+                                </div>
+                            {% else %}
+                                <div class="detail-item">
+                                    <span class="detail-label">Sell Price</span>
+                                    <span class="detail-value">Rs {{ transaction_data.transaction.selling_price|floatformat:2 }}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Gross Sale</span>
+                                    <span class="detail-value">Rs {{ transaction_data.profit_loss.gross_sale|floatformat:2 }}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Purchase Cost</span>
+                                    <span class="detail-value">Rs {{ transaction_data.profit_loss.total_buy_cost|floatformat:2 }}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">SEBON Fee</span>
+                                    <span class="detail-value">Rs {{ transaction_data.profit_loss.sebon_fee|floatformat:2 }}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Broker Commission</span>
+                                    <span class="detail-value">Rs {{ transaction_data.profit_loss.broker_commission|floatformat:2 }}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">DP Charge</span>
+                                    <span class="detail-value">Rs {{ transaction_data.profit_loss.dp_charge|floatformat:2 }}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Capital Gain Tax</span>
+                                    <span class="detail-value">Rs {{ transaction_data.profit_loss.tax_amount|floatformat:2 }}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Receivable Amount</span>
+                                    <span class="detail-value">Rs {{ transaction_data.profit_loss.receivable_amount|floatformat:2 }}</span>
+                                </div>
+                                <div class="detail-item" style="border-top: 1px solid var(--border); padding-top: 0.5rem; margin-top: 0.5rem;">
+                                    <span class="detail-label">Net Profit</span>
+                                    <span class="detail-value {% if transaction_data.profit_loss.final_profit >= 0 %}positive{% else %}negative{% endif %}">
+                                        Rs {{ transaction_data.profit_loss.final_profit|floatformat:2 }}
+                                    </span>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                            <polyline points="10 9 9 9 8 9"></polyline>
+                        </svg>
+                    </div>
+                    <h3>No Transactions Found</h3>
+                    <p class="empty-text">You haven't recorded any transactions for this stock yet.</p>
+                    <a href="{% url 'add_buy_transaction' scrip %}" class="empty-action">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Add First Transaction
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleTransactionDetails(transactionId) {
+    const detailsSection = document.getElementById(transactionId + '-details');
+    
+    if (!detailsSection) {
+        console.error('Details section not found for ID:', transactionId + '-details');
+        return;
+    }
+    
+    // Toggle the expanded class
+    detailsSection.classList.toggle('expanded');
+    
+    // Scroll to the details if expanding
+    if (detailsSection.classList.contains('expanded')) {
+        detailsSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+}
+
+function confirmDelete(transactionType, transactionId, scrip) {
+    const typeDisplay = transactionType === 'buy' ? 'purchase' : 'sale';
+    const message = `Are you sure you want to delete this ${typeDisplay} transaction?\n\nThis action cannot be undone and will affect your portfolio calculations.`;
+    
+    if (confirm(message)) {
+        // Create form and submit for deletion
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = transactionType === 'buy' 
+            ? `{% url 'delete_buy_transaction' 0 %}`.replace('0', transactionId)
+            : `{% url 'delete_sell_transaction' 0 %}`.replace('0', transactionId);
+        
+        // Add CSRF token
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (csrfToken) {
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrfmiddlewaretoken';
+            csrfInput.value = csrfToken.value;
+            form.appendChild(csrfInput);
+        }
+        
+        // Add redirect parameter
+        const redirectInput = document.createElement('input');
+        redirectInput.type = 'hidden';
+        redirectInput.name = 'redirect_to';
+        redirectInput.value = window.location.href;
+        form.appendChild(redirectInput);
+        
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    if (!document.querySelector('[name=csrfmiddlewaretoken]')) {
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = '{{ csrf_token }}';
+        document.body.appendChild(csrfInput);
+    }
+    
+    // Add smooth scroll behavior
+    document.documentElement.style.scrollBehavior = 'smooth';
+});
+</script>
+
+{% endblock %}

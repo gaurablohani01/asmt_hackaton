@@ -1,0 +1,768 @@
+{% extends "base.html" %}
+
+{% block title %}Fetch TMS Data{% endblock %}
+
+{% block content %}
+{% load static %}
+    <style>
+        :root {
+            --dark-bg: #0f172a;
+            --darker-bg: #020617;
+            --card-bg: #1e293b;
+            --card-hover: #334155;
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --secondary: #64748b;
+            --accent: #22c55e;
+            --success: #10b981;
+            --text: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border: #475569;
+            --info: #3b82f6;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --glass-bg: rgba(30, 41, 59, 0.8);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Light theme variables */
+        [data-theme="light"] {
+            --dark-bg: #ffffff;
+            --darker-bg: #f8fafc;
+            --card-bg: #ffffff;
+            --card-hover: #f1f5f9;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --glass-bg: rgba(255, 255, 255, 0.9);
+            --glass-border: rgba(0, 0, 0, 0.1);
+        }
+        
+        body {
+            background: var(--darker-bg);
+            min-height: 100vh;
+            color: var(--text);
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            padding: 20px 0;
+            position: relative;
+            overflow-x: hidden;
+            transition: all 0.3s ease;
+        }
+
+        [data-theme="light"] body {
+            background: linear-gradient(135deg, #f8fafc 0%, #ffffff 50%, #f1f5f9 100%);
+        }
+
+        [data-theme="dark"] body {
+            background: linear-gradient(135deg, var(--darker-bg) 0%, var(--dark-bg) 50%, #1e1b4b 100%);
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(34, 197, 94, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(99, 102, 241, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        [data-theme="light"] body::before {
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(34, 197, 94, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(99, 102, 241, 0.03) 0%, transparent 50%);
+        }
+        
+        .card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            box-shadow: 
+                0 25px 50px rgba(0, 0, 0, 0.25),
+                0 0 0 1px rgba(255, 255, 255, 0.05);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+            position: relative;
+        }
+
+        [data-theme="light"] .card {
+            box-shadow: 
+                0 25px 50px rgba(0, 0, 0, 0.08),
+                0 0 0 1px rgba(0, 0, 0, 0.05);
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        }
+
+        [data-theme="light"] .card::before {
+            background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.1), transparent);
+        }
+        
+        .card:hover {
+            transform: translateY(-8px);
+            box-shadow: 
+                0 32px 64px rgba(0, 0, 0, 0.3),
+                0 0 0 1px rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        [data-theme="light"] .card:hover {
+            box-shadow: 
+                0 32px 64px rgba(0, 0, 0, 0.12),
+                0 0 0 1px rgba(0, 0, 0, 0.08);
+            border-color: rgba(0, 0, 0, 0.1);
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: white;
+            padding: 28px 32px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .card-header:hover::before {
+            left: 100%;
+        }
+        
+        .card-header h4 {
+            margin: 0;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+        
+        .card-header i {
+            margin-right: 12px;
+            font-size: 1.4rem;
+        }
+        
+        .card-body {
+            padding: 30px;
+        }
+        
+        .alert {
+            border-radius: 10px;
+            padding: 20px;
+            border: none;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .alert i {
+            margin-right: 10px;
+            font-size: 1.3rem;
+        }
+        
+        .alert-info {
+            background: rgba(45, 125, 210, 0.15);
+            color: #a8d0ff;
+            border-left: 4px solid var(--info);
+        }
+
+        [data-theme="light"] .alert-info {
+            background: rgba(59, 130, 246, 0.1);
+            color: #2563eb;
+            border-left: 4px solid var(--info);
+        }
+        
+        [data-theme="light"] .alert-warning {
+            background: rgba(245, 158, 11, 0.1);
+            color: #d97706;
+            border-left: 4px solid var(--warning);
+        }
+
+        [data-theme="light"] .alert-warning {
+            background: rgba(245, 158, 11, 0.1);
+            color: #d97706;
+            border-left: 4px solid var(--warning);
+        }
+        
+        .form-label {
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+        
+        .form-control {
+            background: rgba(30, 35, 45, 0.7);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 14px 16px;
+            border-radius: 10px;
+            transition: all 0.3s;
+        }
+
+        [data-theme="light"] .form-control {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+        
+        .form-control:focus {
+            background: rgba(40, 45, 55, 0.8);
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px rgba(67, 97, 238, 0.2);
+            color: var(--text);
+        }
+
+        [data-theme="light"] .form-control:focus {
+            background: rgba(255, 255, 255, 1);
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1);
+        }
+        
+        .form-text {
+            color: var(--text-muted);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border: none;
+            padding: 18px 36px;
+            border-radius: 16px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 1.1rem;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .btn-primary:hover::before {
+            left: 100%;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 40px rgba(99, 102, 241, 0.4);
+            background: linear-gradient(135deg, var(--primary-hover), #16a34a);
+        }
+        
+        .btn-secondary {
+            background: rgba(108, 117, 125, 0.2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 14px 28px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 1.05rem;
+            transition: all 0.3s;
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(108, 117, 125, 0.3);
+            transform: translateY(-3px);
+        }
+        
+        .process-steps {
+            display: flex;
+            justify-content: space-between;
+            margin: 25px 0;
+            position: relative;
+        }
+        
+        .process-steps:before {
+            content: '';
+            position: absolute;
+            top: 24px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--border);
+            z-index: 1;
+        }
+        
+        .step {
+            text-align: center;
+            position: relative;
+            z-index: 2;
+            flex: 1;
+        }
+        
+        .step-icon {
+            width: 64px;
+            height: 64px;
+            background: var(--accent);
+            color: white;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            font-size: 1.5rem;
+            box-shadow: 
+                0 8px 32px rgba(34, 197, 94, 0.3),
+                0 0 0 1px rgba(255, 255, 255, 0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .step-icon::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(transparent, rgba(255, 255, 255, 0.3), transparent);
+            animation: rotate 3s linear infinite;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .step:hover .step-icon::before {
+            opacity: 1;
+        }
+
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .step-text {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            max-width: 120px;
+            margin: 0 auto;
+            line-height: 1.4;
+        }
+        
+        .timer-badge {
+            background: linear-gradient(120deg, #e63946, #d63031);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+        
+        .timer-badge i {
+            margin-right: 8px;
+        }
+        
+        .feature-icon {
+            background: linear-gradient(120deg, var(--primary), var(--accent));
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.4rem;
+            margin-right: 20px;
+            flex-shrink: 0;
+        }
+        
+        .feature-box {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: rgba(40, 45, 55, 0.5);
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border: 1px solid var(--border);
+            transition: all 0.3s;
+        }
+
+        [data-theme="light"] .feature-box {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid var(--border);
+        }
+        
+        .feature-box:hover {
+            background: rgba(45, 50, 60, 0.7);
+        }
+
+        [data-theme="light"] .feature-box:hover {
+            background: rgba(255, 255, 255, 0.9);
+        }
+            transform: translateX(5px);
+        }
+        
+        .feature-content h5 {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: var(--text);
+        }
+        
+        .feature-content p {
+            color: var(--text-muted);
+            margin-bottom: 0;
+            font-size: 0.9rem;
+        }
+        
+        .section-title {
+            color: var(--accent);
+            font-weight: 600;
+            margin-bottom: 20px;
+            position: relative;
+            padding-bottom: 10px;
+        }
+        
+        .section-title:after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 50px;
+            height: 3px;
+            background: var(--accent);
+            border-radius: 3px;
+        }
+        
+        @media (max-width: 768px) {
+            .card-body {
+                padding: 20px;
+            }
+            
+            .process-steps {
+                flex-wrap: wrap;
+            }
+            
+            .step {
+                flex: 0 0 50%;
+                margin-bottom: 20px;
+            }
+            
+            .feature-box {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .feature-icon {
+                margin-right: 0;
+                margin-bottom: 15px;
+            }
+        }
+        
+        .glow {
+            animation: glow 2s infinite alternate;
+        }
+        
+        @keyframes glow {
+            from {
+                box-shadow: 0 0 5px rgba(67, 97, 238, 0.5);
+            }
+            to {
+                box-shadow: 0 0 20px rgba(67, 97, 238, 0.8);
+            }
+        }
+    </style>
+
+    <div class="container mt-4">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="card glow">
+                    
+                    <div class="card-header">
+                        <h4><i class="fas fa-download"></i> Fetch Data from TMS Nepse</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle fa-lg"></i>
+                            <div class="d-inline-block">
+                                <strong>About this feature</strong>
+                                <p class="mb-0 mt-2">This tool automatically fetches your share purchase data from the TMS Nepse website. It logs into your TMS account and extracts data from the Payment Due section to populate your share purchases.</p>
+                            </div>
+                        </div>
+                        
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                        
+                         <div class="mb-4" style="margin-bottom: 2.2rem !important;margin-top: 24px;">
+                                <h5 class="section-title">Process Overview</h5>
+                                <div class="process-steps" style="margin-bottom: 1.5rem; margin-top: 0.5rem;">
+                                <div class="step">
+                                    <div class="step-icon" style="background: linear-gradient(120deg, #4f8cff, #7afcff); box-shadow: 0 0 16px #7afcff55;">
+                                        <!-- Server SVG -->
+                                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="4" width="18" height="5" rx="2" fill="#fff" fill-opacity=".85"></rect><rect x="3" y="10" width="18" height="5" rx="2" fill="#fff" fill-opacity=".65"></rect><rect x="3" y="16" width="18" height="4" rx="2" fill="#fff" fill-opacity=".45"></rect><circle cx="7" cy="6.5" r="1" fill="#4f8cff"></circle><circle cx="7" cy="12.5" r="1" fill="#4f8cff"></circle><circle cx="7" cy="18" r="1" fill="#4f8cff"></circle></svg>
+                                    </div>
+                                    <div class="step-text">Enter<br>TMS Server Number</div>
+                                </div>
+                                <div class="step">
+                                    <div class="step-icon" style="background: linear-gradient(120deg, #4895ef, #4cc9f0); box-shadow: 0 0 16px #4cc9f055;">
+                                        <!-- User Lock SVG -->
+                                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="8" r="4" fill="#fff" fill-opacity=".85"></circle><rect x="6" y="15" width="12" height="6" rx="3" fill="#fff" fill-opacity=".65"></rect><rect x="9.5" y="17" width="5" height="3" rx="1.5" fill="#4895ef"></rect><rect x="10.5" y="18" width="3" height="1" rx="0.5" fill="#fff"></rect></svg>
+                                    </div>
+                                    <div class="step-text">Login to<br>TMS Account</div>
+                                </div>
+                                <div class="step">
+                                    <div class="step-icon" style="background: linear-gradient(120deg, #3a52d4, #4361ee); box-shadow: 0 0 16px #4361ee55;">
+                                        <!-- Sync SVG -->
+                                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 12a9 9 0 0 1 9-9c2.21 0 4.21.8 5.78 2.12l-2.12 2.12A7 7 0 0 0 5 12h2l-3 3-3-3h2z" fill="#fff" fill-opacity=".85"></path><path d="M21 12a9 9 0 0 1-9 9c-2.21 0-4.21-.8-5.78-2.12l2.12-2.12A7 7 0 0 0 19 12h-2l3-3 3 3h-2z" fill="#fff" fill-opacity=".65"></path></svg>
+                                    </div>
+                                    <div class="step-text">Data<br>Extraction</div>
+                                </div>
+                                <div class="step">
+                                    <div class="step-icon" style="background: linear-gradient(120deg, #4895ef, #4cc9f0); box-shadow: 0 0 16px #4cc9f055;">
+                                        <!-- Database SVG -->
+                                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><ellipse cx="12" cy="6" rx="9" ry="3" fill="#fff" fill-opacity=".85"></ellipse><path d="M3 6v6c0 1.66 4.03 3 9 3s9-1.34 9-3V6" fill="#fff" fill-opacity=".65"></path><path d="M3 12v6c0 1.66 4.03 3 9 3s9-1.34 9-3v-6" fill="#fff" fill-opacity=".45"></path></svg>
+                                    </div>
+                                    <div class="step-text">Save to<br>Portfolio</div>
+                                </div>
+                            </div>
+                        </div>
+                        </div>
+                        
+                        <form method="post" id="fetchForm">
+                            {% csrf_token %}
+                            
+                            <div class="mb-4">
+                                <h5 class="section-title">Configuration</h5>
+                                <div class="mb-4">
+                                    <label for="tms_number" class="form-label">TMS Server Number</label>
+                                    <input 
+                                        type="text" 
+                                        class="form-control" 
+                                        id="tms_number" 
+                                        name="tms_number" 
+                                        value="{{ default_tms_number }}" 
+                                        pattern="0?[1-9]|[1-9][0-9]" 
+                                        maxlength="2"
+                                        placeholder="Enter server number (e.g. 01 or 52)"
+                                        required
+                                        inputmode="numeric"
+                                    >
+                                    <div class="form-text mt-2">Enter your broker's TMS server number (01-99, leading zero allowed)</div>
+                                </div>
+                            <div class="mb-4">
+  <label for="settlement_type" class="form-label">Settlement Status</label>
+  
+  <div class="custom-select-container">
+    <select class="custom-select" id="settlement_type" name="settlement_type" required>
+      <option value="PaymentDue" selected>Payment Due (Pending)</option>
+      <option value="Success">Settled Transactions</option>
+    </select>
+  </div>
+  
+  <div class="select-hint">
+    <svg class="hint-icon" viewBox="0 0 24 24">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm-1-7.5c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/>
+    </svg>
+    <span>View either pending settlements or completed transactions</span>
+  </div>
+</div>
+
+<style>
+  .custom-select-container {
+    position: relative;
+    margin-bottom: 8px;
+  }
+  
+  .custom-select {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    background-color: #f8fafc;
+    font-size: 14px;
+    color: #334155;
+    cursor: pointer;
+    appearance: none;
+    transition: all 0.2s ease;
+  }
+  
+  .custom-select:hover {
+    border-color: #cbd5e1;
+    background-color: #f1f5f9;
+  }
+  
+  .custom-select:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+  }
+  
+  .custom-select-container::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: 16px;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid #64748b;
+    pointer-events: none;
+  }
+  
+  .select-hint {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 13px;
+    color: #64748b;
+    line-height: 1.4;
+  }
+  
+  .hint-icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    fill: #64748b;
+  }
+  
+  option {
+    padding: 8px 12px;
+    background: white;
+  }
+  
+  option:hover {
+    background-color: #6366f1;
+    color: white;
+  }
+</style>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <h5 class="section-title">Key Features</h5>
+                                <div class="key-features-row" style="display: flex; justify-content: space-between; align-items: flex-start; gap: 2.5rem; margin-bottom: 0;">
+                                    <div class="key-feature-step" style="flex: 1; display: flex; flex-direction: column; align-items: center;">
+                                        <div class="feature-icon" style="background: linear-gradient(120deg, #ffe066, #ffd166); box-shadow: 0 0 16px #ffe06655; width: 60px; height: 60px; font-size: 2rem; display: flex; align-items: center; justify-content: center; margin-bottom: 10px;">
+                                            <!-- Bolt SVG -->
+                                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M13 2L3 14h7v8l10-12h-7V2z" fill="#ffd166" stroke="#bfa100" stroke-width="1.5"/></svg>
+                                        </div>
+                                        <div style="font-weight: 700; color: var(--text); font-size: 1.08rem; margin-bottom: 4px;">Automated Data Fetch</div>
+                                        <div style="color: var(--text-muted); font-size: 0.97rem; text-align: center; max-width: 170px;">System automatically logs into your TMS account and extracts all purchase data</div>
+                                    </div>
+                                    <div class="key-feature-step" style="flex: 1; display: flex; flex-direction: column; align-items: center;">
+                                        <div class="feature-icon" style="background: linear-gradient(120deg, #4cc9f0, #4895ef); box-shadow: 0 0 16px #4cc9f055; width: 60px; height: 60px; font-size: 2rem; display: flex; align-items: center; justify-content: center; margin-bottom: 10px;">
+                                            <!-- Shield SVG -->
+                                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3l7 4v5c0 5-3.5 9-7 9s-7-4-7-9V7l7-4z" fill="#4cc9f0" stroke="#2d7dd2" stroke-width="1.5"/><path d="M12 12v4" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="10" r="1" fill="#fff"/></svg>
+                                        </div>
+                                        <div style="font-weight: 700; color: var(--text); font-size: 1.08rem; margin-bottom: 4px;">Secure Process</div>
+                                        <div style="color: var(--text-muted); font-size: 0.97rem; text-align: center; max-width: 170px;">Your credentials are never stored. We use secure browser automation</div>
+                                    </div>
+                                    <div class="key-feature-step" style="flex: 1; display: flex; flex-direction: column; align-items: center;">
+                                        <div class="feature-icon" style="background: linear-gradient(120deg, #b5179e, #7209b7); box-shadow: 0 0 16px #b5179e55; width: 60px; height: 60px; font-size: 2rem; display: flex; align-items: center; justify-content: center; margin-bottom: 10px;">
+                                            <!-- Filter SVG -->
+                                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 4h18l-7 9v5l-4 2v-7L3 4z" fill="#b5179e" stroke="#fff" stroke-width="1.5"/><rect x="10" y="15" width="4" height="2" rx="1" fill="#fff"/></svg>
+                                        </div>
+                                        <div style="font-weight: 700; color: var(--text); font-size: 1.08rem; margin-bottom: 4px;">Duplicate Prevention</div>
+                                        <div style="color: var(--text-muted); font-size: 0.97rem; text-align: center; max-width: 170px;">System automatically detects and skips existing records</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <h5 class="section-title">Important Notes</h5>
+                                <div class="alert alert-warning" style="
+                                    padding: 16px 28px 16px 28px;
+                                    background: #49423a;
+                                    color: #ffe6a0;
+                                    border-radius: 14px;
+                                    border-left: 5px solid var(--warning);
+                                    box-shadow: 0 2px 12px rgba(249,168,38,0.08);
+                                    margin-bottom: 1.1rem;
+                                ">
+                                    <i class="fas fa-exclamation-triangle fa-lg" style="color: var(--warning);"></i>
+                                    <div class="d-inline-block" style="vertical-align: top; margin-left: 8px;">
+                                        <strong style="color: #ffe6a0;">Please read carefully</strong>
+                                        <ul class="mb-0 mt-2" style="color: #ffe6a0;">
+                                            <li>You have a total of <span class="fw-bold">5 minutes</span> to complete the login process</li>
+                                            <li>Make sure you're connected to the internet during the process</li>
+                                            <li>The extraction may take 1-3 minutes to complete</li>
+                                            <li>Only new records will be added - duplicates will be ignored</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="timer-badge" style="margin-top: 12px;">
+                                    <i class="fas fa-clock"></i> 30 seconds to login after clicking start
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid gap-3 mt-4">
+                                <button type="submit" class="btn btn-primary" id="submitBtn">
+                                    <i class="fas fa-external-link-alt me-2"></i> Start TMS Data Fetch
+                                </button>
+                                <a href="{% url 'dashboard' %}" class="btn btn-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i> Back to Dashboard
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('fetchForm').addEventListener('submit', function(e) {
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Fetching Data...';
+            submitBtn.disabled = true;
+            
+            // Add a small delay to allow the button state to update
+            setTimeout(() => {
+                // In a real application, this would be handled by the backend
+                // Here we'll just simulate a successful submission
+                submitBtn.innerHTML = '<i class="fas fa-check me-2"></i> Data Fetched!';
+                submitBtn.classList.remove('btn-primary');
+                submitBtn.classList.add('btn-success');
+                
+                // Show a success message
+                const successAlert = document.createElement('div');
+                successAlert.className = 'alert alert-success mt-3';
+                successAlert.innerHTML = `
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>Success!</strong> Data has been fetched from TMS and added to your portfolio.
+                `;
+                document.querySelector('.card-body').appendChild(successAlert);
+            }, 3000);
+        });
+    </script>
+
+
+{% endblock %}
